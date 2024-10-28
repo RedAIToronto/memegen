@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+model ModelQueue {
+  id           String    @id @default(cuid())
+  name         String
+  status       String    @default("queued") // queued, training, completed
+  fileUrl      String
+  previewImage String
+  createdAt    DateTime  @default(now())
+  startedAt    DateTime?
+  estimatedTime String?
+  owner        String    // wallet address
+}
+
+model AvailableModel {
+  id           String  @id
+  name         String
+  promptPrefix String
+  previewImage String
+  description  String
+  available    Boolean @default(true)
+  owner        String  @default("redaitoronto") // Default Replicate owner
+  modelId      String  @default("") // Default empty model ID
+  config       Json?   // Optional model-specific configuration
+}
+
+model Model {
+  id           String  @id
+  name         String
+  promptPrefix String
+  previewImage String
+  description  String?
+  owner        String  @default("redaitoronto")
+  modelId      String  @default("")
+  available    Boolean @default(true)
+  config       Json?
+}
+
+model Generation {
+  id            String   @id @default(cuid())
+  prompt        String
+  imageUrl      String
+  model         String
+  modelName     String?
+  walletAddress String?
+  createdAt     DateTime @default(now())
+}
