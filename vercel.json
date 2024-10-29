@@ -1,32 +1,324 @@
 {
 
+
+
   "version": 2,
+
+
 
   "buildCommand": "npm run vercel-build",
 
+
+
   "installCommand": "npm install",
+
+
 
   "framework": "nextjs",
 
+
+
   "regions": ["sfo1"],
+
+
 
   "functions": {
 
-    "api/generate-image.js": {
+
+
+    "pages/api/generate-image.js": {
+
+
 
       "maxDuration": 300
 
+
+
+    },
+
+
+
+    "pages/api/**/*.js": {
+
+
+
+      "maxDuration": 60
+
+
+
     }
+
+
 
   },
 
+
+
   "env": {
+
+
 
     "PRISMA_GENERATE_DATAPROXY": "true"
 
+
+
   }
 
+
+
 } 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

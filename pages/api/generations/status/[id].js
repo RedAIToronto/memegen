@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, connectToDatabase } from '@/lib/prisma';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -8,46 +8,34 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   try {
+    const isConnected = await connectToDatabase();
+    if (!isConnected) {
+      return res.status(500).json({ error: 'Database connection failed' });
+    }
+
     const generation = await prisma.generation.findUnique({
       where: { id },
       select: {
         id: true,
-        prompt: true,
-        imageUrl: true,
         status: true,
+        imageUrl: true,
         error: true,
-        model: true,
-        modelName: true,
-        createdAt: true
+        createdAt: true,
+        completedAt: true
       }
     });
 
     if (!generation) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Generation not found' 
-      });
+      return res.status(404).json({ error: 'Generation not found' });
     }
 
-    if (generation.status === 'pending' && !generation.imageUrl) {
-      return res.status(200).json({
-        success: true,
-        generation: {
-          ...generation,
-          status: 'pending'
-        }
-      });
-    }
+    return res.status(200).json({ generation });
 
-    return res.status(200).json({
-      success: true,
-      generation
-    });
   } catch (error) {
     console.error('Status check error:', error);
-    return res.status(500).json({ 
-      success: false,
-      error: 'Failed to check generation status' 
-    });
+    return res.status(500).json({ error: 'Failed to check generation status' });
   }
 } 
+
+
+

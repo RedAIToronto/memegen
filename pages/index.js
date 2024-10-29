@@ -137,13 +137,9 @@ export default function Home() {
         <div className="container mx-auto px-4 py-8">
           {/* Hero Section */}
           <section className="relative py-8 mb-12">
-            {/* Animated background effects */}
+            {/* Remove kawaii decorations */}
             <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-[url('/sparkles.svg')] opacity-10 animate-twinkle" />
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-transparent animate-pulse" />
-              {/* Kawaii decorative elements */}
-              <div className="absolute top-0 left-0 w-24 h-24 bg-pink-500/10 rounded-full blur-xl animate-pulse" />
-              <div className="absolute bottom-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-xl animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-50 via-purple-50 to-transparent" />
             </div>
             
             <div className="relative flex items-center justify-between">
@@ -153,23 +149,23 @@ export default function Home() {
                 animate={{ opacity: 1, x: 0 }}
                 className="max-w-xl"
               >
-                <h1 className="text-6xl font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-transparent bg-clip-text mb-4">
-                  AIDOBE
+                <h1 className="text-6xl font-bold text-gray-900 mb-4">
+                  MemeGen
                 </h1>
-                <p className="text-2xl text-muted-foreground mb-6">
-                  Generate AI memes with $AIDOBE tokens (◕‿◕✿)
+                <p className="text-2xl text-gray-600 mb-6">
+                  AI-Powered Meme Generation Platform
                 </p>
                 <div className="flex gap-4">
                   <Link href="#generate">
-                    <Button className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-lg px-8">
+                    <Button className="bg-purple-600 hover:bg-purple-700 text-lg px-8">
                       <Sparkles className="mr-2 h-4 w-4" />
                       Start Generating
                     </Button>
                   </Link>
-                  <Link href="https://raydium.io/swap" target="_blank">
-                    <Button variant="outline" className="text-lg px-8 border-pink-500/20">
+                  <Link href="https://raydium.io/swap/?inputMint=sol&outputMint=A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump" target="_blank">
+                    <Button variant="outline" className="text-lg px-8 border-purple-200">
                       <Coins className="mr-2 h-4 w-4" />
-                      Buy $AIDOBE
+                      Get $FWOG
                     </Button>
                   </Link>
                 </div>
@@ -183,14 +179,10 @@ export default function Home() {
               >
                 <Image
                   src="https://pbs.twimg.com/media/GbAtotSWcAA5Uh2?format=png&name=small"
-                  alt="AIDOBE"
+                  alt="MemeGen"
                   fill
-                  className="object-contain animate-float drop-shadow-2xl"
+                  className="object-contain"
                 />
-                {/* Kawaii decorative elements around logo */}
-                <div className="absolute -inset-4 bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-transparent rounded-full blur-2xl -z-10 animate-pulse" />
-                <div className="absolute -top-6 -right-6 text-3xl animate-bounce">🌸</div>
-                <div className="absolute -bottom-4 -left-4 text-3xl animate-bounce delay-100">✨</div>
               </motion.div>
             </div>
           </section>

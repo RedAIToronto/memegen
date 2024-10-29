@@ -66,7 +66,7 @@ const STATUS_COLORS = {
 
 
 
-  preparing: "text-pink-500",
+  preparing: "text-yellow-500",
 
 
 
@@ -74,11 +74,39 @@ const STATUS_COLORS = {
 
 
 
-  completed: "text-blue-500",
+  completed: "text-green-500",
 
 
 
-  queued: "text-gray-500"
+  queued: "text-blue-500"
+
+
+
+};
+
+
+
+
+
+
+
+const STATUS_TEXT = {
+
+
+
+  preparing: "Preparing",
+
+
+
+  training: "Training",
+
+
+
+  completed: "Ready",
+
+
+
+  queued: "Queued"
 
 
 
@@ -159,6 +187,26 @@ export default function Layout({ children }) {
 
 
   }, [fetchQueue]);
+
+
+
+
+
+
+
+  // Filter out completed models and only show active ones
+
+
+
+  const activeModels = modelQueue.filter(model => 
+
+
+
+    model.status !== 'completed' && model.status !== 'failed'
+
+
+
+  );
 
 
 
@@ -274,11 +322,11 @@ export default function Layout({ children }) {
 
 
 
-            {/* Center - Queue Items */}
+            {/* Center - Training Queue */}
 
 
 
-            {!error && modelQueue.length > 0 && (
+            {!error && activeModels.length > 0 && (
 
 
 
@@ -290,7 +338,7 @@ export default function Layout({ children }) {
 
 
 
-                  {modelQueue.map((model) => {
+                  {activeModels.map((model) => {
 
 
 
@@ -378,31 +426,51 @@ export default function Layout({ children }) {
 
 
 
-                        <StatusIcon 
+                        <div className="flex items-center gap-1">
 
 
 
-                          className={`h-3.5 w-3.5 shrink-0 ${STATUS_COLORS[model.status]} ${
+                          <StatusIcon 
 
 
 
-                            model.status === 'preparing' || model.status === 'training' 
+                            className={`h-3.5 w-3.5 shrink-0 ${STATUS_COLORS[model.status]} ${
 
 
 
-                              ? 'animate-spin' 
+                              model.status === 'preparing' || model.status === 'training' 
 
 
 
-                              : ''
+                                ? 'animate-spin' 
 
 
 
-                          }`} 
+                                : ''
 
 
 
-                        />
+                            }`} 
+
+
+
+                          />
+
+
+
+                          <span className={`text-xs ${STATUS_COLORS[model.status]}`}>
+
+
+
+                            {STATUS_TEXT[model.status]}
+
+
+
+                          </span>
+
+
+
+                        </div>
 
 
 

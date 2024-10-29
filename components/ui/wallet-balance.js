@@ -10,7 +10,7 @@ export function WalletBalance() {
   const [tokenBalance, setTokenBalance] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const TOKEN_MINT = new PublicKey('FXPn4kM8M252tbRXV4mvdqSQvY6jrg3J5cuRCphXpump');
+  const TOKEN_MINT = new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump');
   const TOKEN_DECIMALS = 6; // Most SPL tokens use 6 or 9 decimals
 
   const formatTokenBalance = (amount) => {
@@ -86,7 +86,7 @@ export function WalletBalance() {
         </span>
       </div>
       <div className="text-sm">
-        <span className="text-muted-foreground">Token Balance: </span>
+        <span className="text-muted-foreground">$FWOG Balance: </span>
         <span className="font-medium">
           {formatTokenBalance(tokenBalance)}
         </span>

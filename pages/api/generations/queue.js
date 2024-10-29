@@ -1,40 +1,40 @@
-import { prisma, connectToDatabase } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req, res) {
-  try {
-    const isConnected = await connectToDatabase()
-    if (!isConnected) {
-      throw new Error('Failed to connect to database')
-    }
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-    const queue = await prisma.modelQueue.findMany({
-      where: {
-        status: {
-          not: 'completed'
-        }
-      },
+  try {
+    const queue = await prisma.generation.findMany({
       orderBy: {
         createdAt: 'desc'
+      },
+      take: 50, // Limit to last 50 items
+      select: {
+        id: true,
+        prompt: true,
+        imageUrl: true,
+        model: true,
+        modelName: true,
+        walletAddress: true,
+        createdAt: true,
+        status: true,
+        error: true,
+        signature: true
       }
-    })
+    });
 
     return res.status(200).json({
       success: true,
-      queue: queue.map(item => ({
-        ...item,
-        createdAt: item.createdAt.toISOString(),
-        startedAt: item.startedAt?.toISOString()
-      }))
-    })
+      queue
+    });
   } catch (error) {
-    console.error('Queue API error:', error)
-    return res.status(500).json({ 
+    console.error('Failed to fetch queue:', error);
+    return res.status(500).json({
       success: false,
-      error: 'Failed to fetch queue',
-      message: error.message 
-    })
-  } finally {
-    await prisma.$disconnect()
+      error: 'Failed to fetch queue'
+    });
   }
 }
 

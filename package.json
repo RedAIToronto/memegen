@@ -30,8 +30,10 @@
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.95.4",
     "@uploadthing/react": "^7.1.0",
+    "bufferutil": "^4.0.8",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "cookie": "^1.0.1",
     "date-fns": "^4.1.0",
     "formidable": "^3.5.2",
     "framer-motion": "^11.11.10",
@@ -45,9 +47,8 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "uploadthing": "^7.2.0",
-    "ws": "^8.18.0",
-    "bufferutil": "^4.0.8",
-    "utf-8-validate": "^6.0.3"
+    "utf-8-validate": "^6.0.3",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",

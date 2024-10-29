@@ -16,12 +16,11 @@ datasource db {
 
 model ModelQueue {
   id            String   @id @default(cuid())
-  name          String   @unique
+  name          String
   status        String   @default("preparing")
   fileUrl       String
   previewImage  String
   createdAt     DateTime @default(now())
-  startedAt     DateTime?
   estimatedTime String?
   owner         String?
 }
@@ -35,20 +34,22 @@ model AvailableModel {
   available    Boolean @default(true)
   owner        String  @default("redaitoronto") // Default Replicate owner
   modelId      String  @default("") // Default empty model ID
-  config       Json?   // Optional model-specific configuration
+  config       Json? // Optional model-specific configuration
 }
 
 model Generation {
-  id            String   @id @default(cuid())
-  prompt        String   @db.Text
-  imageUrl      String?  @db.Text
+  id            String    @id @default(cuid())
+  prompt        String    @db.Text
+  imageUrl      String?   @db.Text
   model         String
   modelName     String
   walletAddress String?
-  createdAt     DateTime @default(now())
-  status        String   @default("pending")
+  createdAt     DateTime  @default(now())
+  status        String    @default("pending")
   error         String?
   signature     String?
+  predictionId  String?
+  completedAt   DateTime?
 
   @@index([createdAt(sort: Desc)])
 }

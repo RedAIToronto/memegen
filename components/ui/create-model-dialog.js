@@ -12,7 +12,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { TransactionStatus } from "./image-generator/status-cards";
 
-const CREATION_COST = 200000 // 4.2M tokens
+const CREATION_COST = 5 // 5 FWOG tokens
 
 export function CreateModelDialog({ open, onOpenChange }) {
   const [modelName, setModelName] = useState('');
@@ -24,27 +24,17 @@ export function CreateModelDialog({ open, onOpenChange }) {
   const [transactionStatus, setTransactionStatus] = useState('idle')
   const [transactionSignature, setTransactionSignature] = useState(null)
   const wallet = useWallet()
-  const [tokenMint, setTokenMint] = useState(null);
-  const [treasuryWallet, setTreasuryWallet] = useState(null);
+  const [tokenMint, setTokenMint] = useState(new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump'));
+  const [treasuryWallet, setTreasuryWallet] = useState(new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw'));
 
   useEffect(() => {
-    // Only initialize PublicKeys on client side
     try {
       if (typeof window !== 'undefined') {
-        if (process.env.NEXT_PUBLIC_TOKEN_MINT) {
-          setTokenMint(new PublicKey(process.env.NEXT_PUBLIC_TOKEN_MINT));
-        }
-        if (process.env.NEXT_PUBLIC_TREASURY_WALLET) {
-          setTreasuryWallet(new PublicKey(process.env.NEXT_PUBLIC_TREASURY_WALLET));
-        }
+        setTokenMint(new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump'));
+        setTreasuryWallet(new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw'));
       }
     } catch (error) {
       console.error('Failed to initialize PublicKeys:', error);
-      toast({
-        variant: "destructive",
-        title: "Configuration Error",
-        description: "Failed to initialize wallet configuration",
-      });
     }
   }, []);
 
@@ -116,9 +106,18 @@ export function CreateModelDialog({ open, onOpenChange }) {
         onError: (error) => {
           if (error.message.includes("insufficient funds")) {
             toast({
-              title: "Insufficient $AIDOBE tokens",
+              variant: "destructive",
+              title: "Insufficient $FWOG tokens",
               description: "Please make sure you have enough tokens to create a model",
-              variant: "destructive"
+              action: (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://raydium.io/swap', '_blank')}
+                >
+                  Get $FWOG
+                </Button>
+              )
             })
           } else {
             toast({
@@ -306,7 +305,7 @@ export function CreateModelDialog({ open, onOpenChange }) {
               Creating...
             </>
           ) : (
-            'Create Model (4.2M $AIDOBE)'
+            'Create Model (5 $FWOG)'
           )}
         </Button>
       </DialogContent>

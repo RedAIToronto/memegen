@@ -1,71 +1,52 @@
-import { Transaction, ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddress, createTransferInstruction, getAccount } from '@solana/spl-token';
+import { createAssociatedTokenAccountInstruction, getAssociatedTokenAddress, getAccount, createTransferInstruction } from '@solana/spl-token';
+import { Transaction } from '@solana/web3.js';
 
-const logTx = (stage, data) => {
-  console.log(`🔄 [TX ${stage}]`, {
-    timestamp: new Date().toISOString(),
-    ...data
-  });
-};
-
-export const handleTransaction = async ({
-  connection,
-  wallet,
-  amount,
-  tokenMint,
-  treasuryWallet,
-  onStatus,
-  onError
-}) => {
+export async function handleTransaction({ connection, wallet, amount, tokenMint, treasuryWallet, onStatus, onError }) {
   try {
-    // Validate public keys
-    if (!PublicKey.isOnCurve(treasuryWallet.toBuffer())) {
-      throw new Error('Invalid treasury wallet address');
-    }
-
-    if (!PublicKey.isOnCurve(tokenMint.toBuffer())) {
-      throw new Error('Invalid token mint address');
-    }
-
-    logTx('START', { 
-      amount, 
+    onStatus('processing');
+    console.log('🔄 [TX START]', {
+      timestamp: new Date().toISOString(),
+      amount,
       wallet: wallet.publicKey.toString(),
       treasury: treasuryWallet.toString(),
       mint: tokenMint.toString()
     });
-    
-    onStatus('processing');
 
     // Get token accounts
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, wallet.publicKey);
     const treasuryTokenAccount = await getAssociatedTokenAddress(tokenMint, treasuryWallet);
-    
-    logTx('ACCOUNTS', { 
+
+    console.log('🔄 [TX ACCOUNTS]', {
+      timestamp: new Date().toISOString(),
       userTokenAccount: userTokenAccount.toString(),
       treasuryTokenAccount: treasuryTokenAccount.toString()
     });
 
-    // Verify accounts exist
+    // Create transaction
+    const transaction = new Transaction();
+
+    // Add a recent blockhash
+    const { blockhash } = await connection.getLatestBlockhash('finalized');
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = wallet.publicKey;
+
+    // Check if user's token account exists
     try {
-      const userAccount = await getAccount(connection, userTokenAccount);
-      const treasuryAccount = await getAccount(connection, treasuryTokenAccount);
-      
-      if (Number(userAccount.amount) < amount) {
-        throw new Error(`Insufficient token balance. Required: ${amount}, Available: ${userAccount.amount}`);
-      }
-    } catch (error) {
-      if (error.message.includes('could not find account')) {
-        throw new Error('Token account not found. Please ensure you have $AIDOBE tokens.');
-      }
-      throw error;
+      await getAccount(connection, userTokenAccount);
+    } catch (e) {
+      onStatus('creating_account');
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          wallet.publicKey,
+          userTokenAccount,
+          wallet.publicKey,
+          tokenMint
+        )
+      );
     }
 
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('processed');
-    
-    const transaction = new Transaction().add(
-      ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: 1000000
-      }),
+    // Add transfer instruction
+    transaction.add(
       createTransferInstruction(
         userTokenAccount,
         treasuryTokenAccount,
@@ -74,64 +55,35 @@ export const handleTransaction = async ({
       )
     );
 
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = wallet.publicKey;
-
-    logTx('SIGNING', { blockhash });
-    const signed = await wallet.signTransaction(transaction);
-    logTx('SIGNED', { signed: !!signed });
-
-    const signature = await connection.sendRawTransaction(signed.serialize(), {
-      skipPreflight: false,
-      maxRetries: 3,
-      preflightCommitment: 'processed'
-    });
+    // Send transaction
+    onStatus('processing');
+    const signature = await wallet.sendTransaction(transaction, connection);
     
-    logTx('SENT', { signature });
     onStatus('confirming');
-
+    
     // Wait for confirmation
-    let confirmed = false;
-    const startTime = Date.now();
-    const TIMEOUT = 20000;
-    const CHECK_FREQUENCY = 250;
-
-    while (Date.now() - startTime < TIMEOUT && !confirmed) {
-      try {
-        const response = await connection.getSignatureStatus(signature);
-        
-        if (response?.value) {
-          if (response.value.err) {
-            throw new Error('Transaction failed: ' + JSON.stringify(response.value.err));
-          }
-
-          if (response.value.confirmationStatus) {
-            const confirmTime = Date.now() - startTime;
-            logTx('CONFIRMED', { 
-              signature,
-              confirmationStatus: response.value.confirmationStatus,
-              confirmTime: `${confirmTime}ms`
-            });
-            
-            onStatus('confirmed');
-            confirmed = true;
-            return signature;
-          }
-        }
-
-        await new Promise(resolve => setTimeout(resolve, CHECK_FREQUENCY));
-      } catch (error) {
-        console.error('Confirmation check failed:', error);
-      }
+    const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+    
+    if (confirmation.value.err) {
+      throw new Error('Transaction failed to confirm');
     }
 
-    if (!confirmed) {
-      throw new Error('Transaction confirmation timeout');
-    }
+    onStatus('confirmed');
+    return signature;
 
   } catch (error) {
-    logTx('ERROR', { error: error.message });
+    console.log('🔄 [TX ERROR]', {
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+
+    if (error.message?.includes('User rejected')) {
+      onStatus('rejected');
+    } else {
+      onStatus('error');
+    }
+
     onError(error);
-    throw error;
+    return null;
   }
-};
+}

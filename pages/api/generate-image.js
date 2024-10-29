@@ -1,5 +1,5 @@
 import Replicate from "replicate";
-import { prisma } from '@/lib/prisma';
+import { prisma, connectToDatabase } from '@/lib/prisma';
 
 export const config = {
   maxDuration: 300,
@@ -10,26 +10,25 @@ export const config = {
 };
 
 export default async function handler(req, res) {
+  const isConnected = await connectToDatabase();
+  if (!isConnected) {
+    console.error('Database connection failed');
+    return res.status(500).json({ error: 'Database connection failed' });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { prompt, model, walletAddress, signature } = req.body;
+    console.log('Starting generation with:', { prompt, model, walletAddress });
 
-    if (!prompt || !model || !walletAddress || !signature) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        details: {
-          prompt: !prompt ? 'Required' : undefined,
-          model: !model ? 'Required' : undefined,
-          walletAddress: !walletAddress ? 'Required' : undefined,
-          signature: !signature ? 'Required' : undefined,
-        }
-      });
-    }
+    const replicate = new Replicate({
+      auth: process.env.REPLICATE_API_TOKEN,
+    });
 
-    // Create a pending generation record - now without imageUrl
+    // Create initial database record
     const generation = await prisma.generation.create({
       data: {
         prompt,
@@ -42,41 +41,9 @@ export default async function handler(req, res) {
       }
     });
 
-    // Start the generation process in the background
-    generateImage(generation.id, prompt, model).catch(error => {
-      console.error('Background generation error:', error);
-      prisma.generation.update({
-        where: { id: generation.id },
-        data: {
-          status: 'failed',
-          error: error.message
-        }
-      }).catch(console.error);
-    });
-
-    // Immediately return the generation ID
-    return res.status(202).json({
-      success: true,
-      generationId: generation.id,
-      message: 'Generation started'
-    });
-
-  } catch (error) {
-    console.error('Generation error:', error);
-    return res.status(500).json({ 
-      error: 'Failed to start generation',
-      details: error.message
-    });
-  }
-}
-
-async function generateImage(generationId, prompt, model) {
-  const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
-  });
-
-  try {
+    // Start the prediction
     const formattedPrompt = `${model.toUpperCase()} ${prompt}`;
+    console.log(`[${generation.id}] Creating prediction with prompt: ${formattedPrompt}`);
     
     const prediction = await replicate.deployments.predictions.create(
       "redaitoronto",
@@ -95,30 +62,28 @@ async function generateImage(generationId, prompt, model) {
       }
     );
 
-    const result = await replicate.wait(prediction);
-
-    if (!result.output || !Array.isArray(result.output)) {
-      throw new Error('Invalid output from model');
-    }
-
-    // Update the generation record with the result
+    // Store the prediction ID immediately
     await prisma.generation.update({
-      where: { id: generationId },
+      where: { id: generation.id },
       data: {
-        status: 'completed',
-        imageUrl: result.output[0],
+        status: 'processing',
+        predictionId: prediction.id
       }
+    });
+
+    // Return immediately with both IDs
+    return res.status(202).json({
+      success: true,
+      generationId: generation.id,
+      predictionId: prediction.id,
+      message: 'Generation started'
     });
 
   } catch (error) {
     console.error('Generation error:', error);
-    await prisma.generation.update({
-      where: { id: generationId },
-      data: {
-        status: 'failed',
-        error: error.message
-      }
+    return res.status(500).json({ 
+      error: 'Failed to start generation',
+      details: error.message
     });
-    throw error; // Re-throw to be caught by the caller
   }
 }

@@ -11,8 +11,11 @@ import { handleTransaction } from './image-generator/transaction-handler'
 import { PublicKey, Connection } from '@solana/web3.js'
 import { TransactionStatus, GeneratingPlaceholder } from "./image-generator/status-cards"
 import Image from 'next/image'
+import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token'
 
-const GENERATION_COST = 1000
+const GENERATION_COST = 5 // 5 FWOG tokens
+const TOKEN_MINT = new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump')
+const TREASURY_WALLET = new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw')
 
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState('')
@@ -30,13 +33,9 @@ export function ImageGenerator() {
 
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TOKEN_MINT) {
-        const mintKey = new PublicKey(process.env.NEXT_PUBLIC_TOKEN_MINT);
-        setTokenMint(mintKey);
-      }
-      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TREASURY_WALLET) {
-        const treasuryKey = new PublicKey(process.env.NEXT_PUBLIC_TREASURY_WALLET);
-        setTreasuryWallet(treasuryKey);
+      if (typeof window !== 'undefined') {
+        setTokenMint(new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump'));
+        setTreasuryWallet(new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw'));
       }
     } catch (error) {
       console.error('Failed to initialize PublicKeys:', error);
@@ -65,6 +64,58 @@ export function ImageGenerator() {
     }
   ]
 
+  const checkTokenBalance = async () => {
+    try {
+      const tokenAccount = await getAssociatedTokenAddress(
+        tokenMint,
+        wallet.publicKey
+      );
+
+      try {
+        const account = await getAccount(connection, tokenAccount);
+        const balance = Number(account.amount) / Math.pow(10, 6);
+        
+        if (balance < GENERATION_COST) {
+          toast({
+            variant: "destructive",
+            title: "Insufficient Balance",
+            description: `You need ${GENERATION_COST} $FWOG tokens. Current balance: ${balance.toLocaleString()}`,
+            action: (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open('https://raydium.io/swap', '_blank')}
+              >
+                Get $FWOG
+              </Button>
+            )
+          });
+          return false;
+        }
+        return true;
+      } catch (e) {
+        toast({
+          variant: "destructive",
+          title: "No $FWOG Tokens",
+          description: "You need $FWOG tokens to generate images",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://raydium.io/swap', '_blank')}
+            >
+              Get $FWOG
+            </Button>
+          )
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Balance check error:', error);
+      return false;
+    }
+  };
+
   const handleGenerate = async () => {
     if (!tokenMint || !treasuryWallet) {
       toast({
@@ -86,6 +137,9 @@ export function ImageGenerator() {
       return
     }
 
+    const hasBalance = await checkTokenBalance();
+    if (!hasBalance) return;
+
     setTransactionStatus('processing')
     setIsGenerating(true)
 
@@ -98,16 +152,18 @@ export function ImageGenerator() {
         treasuryWallet,
         onStatus: (status) => {
           setTransactionStatus(status);
-          if (status === 'timeout') {
+          if (status === 'creating_account') {
             toast({
-              variant: "warning",
-              title: "Transaction Taking Longer",
-              description: "Please wait for retry prompt or check Solscan.",
-              duration: 6000,
+              title: "Creating Token Account",
+              description: "Setting up your $FWOG token account...",
+              duration: 5000,
             });
           }
         },
         onError: (error) => {
+          if (error.message?.includes('insufficient funds')) {
+            throw new Error(`You need ${GENERATION_COST} $FWOG tokens for this generation.`);
+          }
           throw error;
         }
       });
@@ -137,59 +193,103 @@ export function ImageGenerator() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Generation start failed:', errorData);
         throw new Error(errorData.error || 'Failed to start generation');
       }
 
       const data = await response.json();
-      
+      console.log('Generation started:', data);
+
       if (!data.generationId) {
         throw new Error('No generation ID returned');
       }
 
-      let attempts = 0;
-      const maxAttempts = 60; // 5 minutes with 5-second intervals
-      const pollInterval = 5000; // 5 seconds
-
-      while (attempts < maxAttempts) {
-        const statusResponse = await fetch(`/api/generations/status/${data.generationId}`);
-        const statusData = await statusResponse.json();
-
-        if (statusData.generation.status === 'completed' && statusData.generation.imageUrl) {
-          setGeneratedImage(statusData.generation.imageUrl);
-          setTransactionStatus('idle');
-          toast({
-            title: "Success",
-            description: "Image generated successfully!",
-          });
-          break;
-        } else if (statusData.generation.status === 'failed') {
-          throw new Error(statusData.generation.error || 'Generation failed');
-        }
-
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        attempts++;
-      }
-
-      if (attempts >= maxAttempts) {
-        throw new Error('Generation timed out');
+      try {
+        const imageUrl = await pollGenerationStatus(data.generationId);
+        setGeneratedImage(imageUrl);
+        setTransactionStatus('idle');
+        toast({
+          title: "Success",
+          description: "Image generated successfully!",
+        });
+      } catch (error) {
+        console.error('Generation failed:', error);
+        throw error;
       }
 
     } catch (error) {
       console.error('Generation error:', error);
-      
-      if (!error.message?.includes('timeout')) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message || "Failed to generate image",
-        });
-      }
-      
-      setTransactionStatus('idle');
+      setTransactionError(error.message);
+      setTransactionStatus('error');
     } finally {
       setIsGenerating(false);
     }
   };
+
+  const pollGenerationStatus = async (generationId) => {
+    let attempts = 0;
+    const maxAttempts = 60;
+    
+    while (attempts < maxAttempts) {
+      try {
+        // Try the prediction status endpoint first
+        const predResponse = await fetch(`/api/generations/prediction-status/${generationId}`);
+        if (!predResponse.ok) {
+          // Fall back to regular status endpoint
+          const response = await fetch(`/api/generations/status/${generationId}`);
+          if (!response.ok) {
+            throw new Error(`Status check failed with ${response.status}`);
+          }
+          const data = await response.json();
+          if (data.generation.status === 'completed') {
+            return data.generation.imageUrl;
+          }
+          if (data.generation.status === 'failed') {
+            throw new Error(data.generation.error || 'Generation failed');
+          }
+        } else {
+          const predData = await predResponse.json();
+          if (predData.generation.status === 'completed') {
+            return predData.generation.imageUrl;
+          }
+          if (predData.generation.status === 'failed') {
+            throw new Error(predData.generation.error || 'Generation failed');
+          }
+        }
+        
+        const delay = Math.min(5000 * Math.pow(1.1, attempts), 15000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        attempts++;
+        
+      } catch (error) {
+        console.error('Status check failed:', error);
+        throw error;
+      }
+    }
+    
+    throw new Error('Generation timed out');
+  };
+
+  const AnnouncementBanner = () => (
+    <div className="mb-8 p-4 rounded-lg bg-purple-50 border border-purple-100">
+      <div className="flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="font-semibold text-purple-900">Token Information</h3>
+          <p className="text-sm text-purple-700">
+            Generate memes using $FWOG tokens • Cost per generation: 5 $FWOG
+            <a 
+              href="https://raydium.io/swap/?inputMint=sol&outputMint=A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ml-2 text-purple-600 hover:text-purple-700 font-medium"
+            >
+              Get Tokens →
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -198,33 +298,28 @@ export function ImageGenerator() {
         {models.map((model) => (
           <Card 
             key={model.id}
-            className={`flex-shrink-0 w-[280px] p-6 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-500/30 
-              backdrop-blur-sm bg-white/90 snap-center
-              ${selectedModel?.id === model.id ? 'ring-4 ring-pink-500 shadow-lg shadow-pink-500/30' : ''}
+            className={`flex-shrink-0 w-[280px] p-6 cursor-pointer transition-all hover:scale-[1.01] 
+              bg-white shadow-modern hover:shadow-modern-lg
+              ${selectedModel?.id === model.id ? 'ring-2 ring-primary-500 shadow-modern-lg' : ''}
               group relative overflow-hidden`}
             onClick={() => setSelectedModel(model)}
           >
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-            
-            <div className="space-y-4 relative">
-              <div className="w-full h-32 rounded-xl overflow-hidden bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-lg">
+            <div className="space-y-4">
+              <div className="w-full h-32 rounded-xl overflow-hidden bg-secondary-50">
                 <img 
                   src={model.image} 
                   alt={model.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
+                <h3 className="text-xl font-semibold text-secondary-700">
                   {model.name}
                 </h3>
-                <p className="text-sm text-muted-foreground">{model.description}</p>
-                <p className="text-xs text-muted-foreground">
-                  Finetuned on {model.name}'s iconic meme style ✨
-                </p>
-                <div className="flex items-center gap-2 text-sm text-pink-500">
+                <p className="text-sm text-secondary-500">{model.description}</p>
+                <div className="flex items-center gap-2 text-sm text-primary-600">
                   <Coins className="h-4 w-4" />
-                  <span>1,000 $AIDOBE</span>
+                  <span>5 $FWOG</span>
                 </div>
               </div>
             </div>
@@ -233,22 +328,24 @@ export function ImageGenerator() {
 
         {/* Create Model Card */}
         <Card 
-          className="flex-shrink-0 w-[280px] p-6 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-500/30 
-            backdrop-blur-sm bg-white/90 border-dashed border-2 border-pink-500/30 group relative snap-center"
+          className="flex-shrink-0 w-[280px] p-6 cursor-pointer transition-all hover:scale-[1.01]
+            bg-white shadow-modern hover:shadow-modern-lg border-2 border-dashed border-secondary-200
+            group relative"
           onClick={() => setShowCreateModel(true)}
         >
           <div className="space-y-4">
-            <div className="w-full h-32 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <Plus className="h-12 w-12 text-pink-500" />
+            <div className="w-full h-32 rounded-xl bg-secondary-50 flex items-center justify-center
+              group-hover:bg-secondary-100 transition-colors">
+              <Plus className="h-8 w-8 text-secondary-400 group-hover:text-secondary-500" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
+              <h3 className="text-xl font-semibold text-secondary-700">
                 Create Model
               </h3>
-              <p className="text-sm text-muted-foreground">Train your own model</p>
-              <div className="flex items-center gap-2 text-sm text-pink-500">
+              <p className="text-sm text-secondary-500">Train your own model</p>
+              <div className="flex items-center gap-2 text-sm text-primary-600">
                 <Coins className="h-4 w-4" />
-                <span>4.2M $AIDOBE</span>
+                <span>5 $FWOG</span>
               </div>
             </div>
           </div>
@@ -267,7 +364,7 @@ export function ImageGenerator() {
             </Label>
             <div className="flex items-center text-sm font-medium text-pink-500">
               <Coins className="h-4 w-4 mr-1" />
-              Cost: {GENERATION_COST} $AIDOBE
+              Cost: {GENERATION_COST} $FWOG
             </div>
           </div>
           

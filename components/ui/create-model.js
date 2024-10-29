@@ -40,11 +40,11 @@ import { Connection } from '@solana/web3.js'
 
 
 
-const CREATION_COST = 4200000 // 4.2M tokens
+const CREATION_COST = 5 // 5 FWOG tokens
 
-const TOKEN_MINT = new PublicKey('FXPn4kM8M252tbRXV4mvdqSQvY6jrg3J5cuRCphXpump')
+const TOKEN_MINT = new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump')
 
-const TREASURY_WALLET = new PublicKey('E1bHib5yZwUSEngTp9fd24BDPjXCSZX5wpMXFBd7DMe')
+const TREASURY_WALLET = new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw')
 
 
 
@@ -138,7 +138,7 @@ export function CreateModel() {
 
             title: "Insufficient Balance",
 
-            description: `You need ${CREATION_COST.toLocaleString()} $AIDOBE tokens. Current balance: ${balance.toLocaleString()}`,
+            description: `You need ${CREATION_COST.toLocaleString()} $FWOG tokens. Current balance: ${balance.toLocaleString()}`,
 
           });
 
@@ -158,7 +158,7 @@ export function CreateModel() {
 
           title: "No Token Account",
 
-          description: "Please get some $AIDOBE tokens first",
+          description: "Please get some $FWOG tokens first",
 
         });
 
@@ -322,7 +322,7 @@ export function CreateModel() {
 
               title: "Insufficient Balance",
 
-              description: `You need ${CREATION_COST.toLocaleString()} $AIDOBE tokens.`,
+              description: `You need ${CREATION_COST.toLocaleString()} $FWOG tokens.`,
 
             });
 
@@ -618,7 +618,7 @@ export function CreateModel() {
 
           <ul className="list-disc pl-4 space-y-1">
 
-            <li>Cost: 4,200,000 tokens</li>
+            <li>Cost: 5 $FWOG tokens</li>
 
             <li>Upload a ZIP file containing your training images (10-20 images recommended)</li>
 
@@ -836,7 +836,7 @@ export function CreateModel() {
 
         ) : (
 
-          'Create Model (4.2M $AIDOBE)'
+          'Create Model (5 $FWOG)'
 
         )}
 

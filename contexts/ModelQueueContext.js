@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
-const ModelQueueContext = createContext();
+const ModelQueueContext = createContext({});
 
 export function ModelQueueProvider({ children }) {
   const [modelQueue, setModelQueue] = useState([]);
@@ -9,11 +9,11 @@ export function ModelQueueProvider({ children }) {
 
   const fetchQueue = useCallback(async () => {
     try {
-      const response = await fetch('/api/generations/queue')
+      const response = await fetch('/api/queue')
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch queue')
+        throw new Error(data.error || 'Failed to fetch queue')
       }
       
       if (data.success) {
@@ -25,14 +25,14 @@ export function ModelQueueProvider({ children }) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load queue"
+        description: "Failed to load model queue"
       })
     }
   }, [toast]);
 
   const addToQueue = useCallback(async (modelData) => {
     try {
-      const response = await fetch('/api/generations/queue', {
+      const response = await fetch('/api/create-model', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(modelData),
@@ -48,51 +48,11 @@ export function ModelQueueProvider({ children }) {
     }
   }, [fetchQueue]);
 
-  const removeFromQueue = useCallback(async (modelId) => {
-    try {
-      const response = await fetch(`/api/admin/queue/${modelId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) throw new Error('Failed to remove from queue');
-      
-      await fetchQueue(); // Refresh queue after removing
-    } catch (error) {
-      console.error('Failed to remove from queue:', error);
-    }
-  }, [fetchQueue]);
-
-  const clearQueue = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/queue/clear', { 
-        method: 'POST' 
-      });
-      
-      if (!response.ok) throw new Error('Failed to clear queue');
-      
-      setModelQueue([]);
-    } catch (error) {
-      console.error('Failed to clear queue:', error);
-    }
-  }, []);
-
   return (
-    <ModelQueueContext.Provider value={{
-      modelQueue,
-      addToQueue,
-      removeFromQueue,
-      clearQueue,
-      fetchQueue
-    }}>
+    <ModelQueueContext.Provider value={{ modelQueue, fetchQueue, addToQueue }}>
       {children}
     </ModelQueueContext.Provider>
   );
 }
 
-export const useModelQueue = () => {
-  const context = useContext(ModelQueueContext);
-  if (context === undefined) {
-    throw new Error('useModelQueue must be used within a ModelQueueProvider');
-  }
-  return context;
-};
+export const useModelQueue = () => useContext(ModelQueueContext);
