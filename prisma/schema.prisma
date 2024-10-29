@@ -41,12 +41,14 @@ model AvailableModel {
 model Generation {
   id            String   @id @default(cuid())
   prompt        String   @db.Text
-  imageUrl      String   @db.Text
+  imageUrl      String?  @db.Text
   model         String
   modelName     String
   walletAddress String?
   createdAt     DateTime @default(now())
-  status        String   @default("completed")
+  status        String   @default("pending")
+  error         String?
+  signature     String?
 
   @@index([createdAt(sort: Desc)])
 }

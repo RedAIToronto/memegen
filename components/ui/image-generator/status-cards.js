@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 
-import { Sparkles, Loader2, CheckCircle2, ExternalLink } from "lucide-react"
+import { Sparkles, Loader2, CheckCircle2, ExternalLink, XCircle, Clock } from "lucide-react"
 
 
 
@@ -8,43 +8,15 @@ export function GeneratingPlaceholder() {
 
   return (
 
-    <Card>
+    <div className="mt-6 rounded-lg overflow-hidden relative aspect-square bg-gradient-to-br from-purple-500/10 to-pink-500/10 animate-pulse">
 
-      <CardContent className="p-4">
+      <div className="absolute inset-0 flex items-center justify-center">
 
-        <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+        <Sparkles className="h-12 w-12 text-purple-500 animate-spin" />
 
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-shimmer" />
+      </div>
 
-          <div className="absolute inset-0 flex items-center justify-center">
-
-            <div className="space-y-6 text-center">
-
-              <Sparkles className="h-12 w-12 animate-spin mx-auto text-primary" />
-
-              <div className="space-y-3">
-
-                <div className="h-4 w-48 bg-primary/20 rounded animate-pulse mx-auto" />
-
-                <div className="h-4 w-32 bg-primary/20 rounded animate-pulse mx-auto" />
-
-                <div className="text-sm text-muted-foreground animate-pulse">
-
-                  Generating your masterpiece...
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </CardContent>
-
-    </Card>
+    </div>
 
   )
 
@@ -52,87 +24,77 @@ export function GeneratingPlaceholder() {
 
 
 
-export const TransactionStatus = ({ status, signature, message }) => {
-
-  if (status === 'idle') return null;
-
-
+export const TransactionStatus = ({ status, signature, message, retryCount, error }) => {
 
   return (
 
-    <Card className={`border-primary/50 ${status === 'confirmed' ? 'bg-green-50/50' : ''}`}>
+    <div className="mt-6 p-6 border rounded-lg bg-white/50 backdrop-blur-sm">
 
-      <CardContent className="p-8">
+      {status === 'processing' && (
 
-        {status === 'processing' && (
+        <div className="flex flex-col items-center space-y-4">
 
-          <div className="flex items-center space-x-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
 
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="text-center">
 
-            <div>
+            <h3 className="font-semibold text-lg">Processing Payment</h3>
 
-              <h3 className="font-semibold">Processing Payment</h3>
-
-              <p className="text-sm text-muted-foreground">Please approve the transaction in your wallet...</p>
-
-              <p className="text-sm text-red-500 font-medium mt-2">
-
-                Please do not refresh or close this page
-
-              </p>
-
-              {signature && (
-
-                <a
-
-                  href={`https://solscan.io/tx/${signature}`}
-
-                  target="_blank"
-
-                  rel="noopener noreferrer"
-
-                  className="flex items-center text-sm text-blue-500 hover:text-blue-600 mt-2"
-
-                >
-
-                  View on Solscan
-
-                  <ExternalLink className="ml-1 h-3 w-3" />
-
-                </a>
-
-              )}
-
-            </div>
+            <p className="text-sm text-muted-foreground">Please confirm in your wallet...</p>
 
           </div>
 
-        )}
+        </div>
+
+      )}
 
 
 
-        {status === 'confirmed' && (
+      {status === 'rejected' && (
 
-          <div className="flex flex-col items-center space-y-2 w-full">
+        <div className="flex flex-col items-center space-y-4">
 
-            <div className="relative">
+          <XCircle className="h-12 w-12 text-red-500" />
 
-              <CheckCircle2 className="h-12 w-12 text-green-500 animate-bounce" />
+          <div className="text-center">
 
-              <div className="absolute inset-0 h-12 w-12 border-4 border-green-500 rounded-full animate-ping" />
+            <h3 className="font-semibold text-lg text-red-600">Transaction Rejected</h3>
 
-            </div>
+            <p className="text-sm text-red-600/80">You declined the transaction.</p>
 
-            <div className="text-center">
+            <p className="text-sm text-muted-foreground mt-2">Please try again when ready.</p>
 
-              <h3 className="font-bold text-xl text-green-600">Payment Confirmed!</h3>
+          </div>
 
-              <p className="text-sm text-green-600/80">Starting image generation...</p>
+        </div>
 
-              <p className="text-sm text-red-500 font-medium mt-2">
+      )}
 
-                Please do not refresh or close this page
+
+
+      {status === 'timeout' && (
+
+        <div className="flex flex-col items-center space-y-4">
+
+          <Clock className="h-12 w-12 text-orange-500 animate-pulse" />
+
+          <div className="text-center">
+
+            <h3 className="font-semibold text-lg text-orange-600">Transaction Taking Longer Than Expected</h3>
+
+            <p className="text-sm text-orange-600/80">Attempting to retry transaction...</p>
+
+            {retryCount && (
+
+              <p className="text-sm text-orange-600/80">Retry attempt {retryCount} of 3</p>
+
+            )}
+
+            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
+
+              <p className="text-sm text-orange-600 font-medium">
+
+                ⚠️ Please keep your wallet ready to sign the retry transaction
 
               </p>
 
@@ -140,41 +102,179 @@ export const TransactionStatus = ({ status, signature, message }) => {
 
           </div>
 
-        )}
+        </div>
+
+      )}
 
 
 
-        {status === 'generating' && (
+      {status === 'confirming' && (
 
-          <div className="flex flex-col items-center space-y-4">
+        <div className="flex flex-col items-center space-y-4">
 
-            <Sparkles className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
 
-            <div className="text-center">
+          <div className="text-center">
 
-              <h3 className="font-semibold text-lg">Creating Your Image</h3>
+            <h3 className="font-semibold text-lg">Confirming Transaction</h3>
 
-              <p className="text-sm text-muted-foreground">This might take a minute...</p>
+            <p className="text-sm text-muted-foreground">This will take a few seconds...</p>
 
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
 
-                <p className="text-sm text-red-600 font-medium">
+              <p className="text-sm text-yellow-600 font-medium">
 
-                  ⚠️ Please do not refresh or close this page while generating
+                ⚠️ Please keep this page open while confirming
 
-                </p>
+              </p>
 
-              </div>
+            </div>
+
+            {signature && (
+
+              <a
+
+                href={`https://solscan.io/tx/${signature}`}
+
+                target="_blank"
+
+                rel="noopener noreferrer"
+
+                className="text-sm text-primary hover:underline mt-2 inline-flex items-center"
+
+              >
+
+                View on Solscan
+
+                <ExternalLink className="h-3 w-3 ml-1" />
+
+              </a>
+
+            )}
+
+          </div>
+
+        </div>
+
+      )}
+
+
+
+      {status === 'confirmed' && (
+
+        <div className="flex flex-col items-center space-y-2 w-full">
+
+          <div className="relative">
+
+            <CheckCircle2 className="h-12 w-12 text-green-500 animate-bounce" />
+
+            <div className="absolute inset-0 h-12 w-12 border-4 border-green-500 rounded-full animate-ping" />
+
+          </div>
+
+          <div className="text-center">
+
+            <h3 className="font-bold text-xl text-green-600">Payment Confirmed!</h3>
+
+            <p className="text-sm text-green-600/80">Starting image generation...</p>
+
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+
+              <p className="text-sm text-red-600 font-medium">
+
+                ⚠️ Do not close or refresh this page - Image generation in progress
+
+              </p>
 
             </div>
 
           </div>
 
-        )}
+        </div>
 
-      </CardContent>
+      )}
 
-    </Card>
+
+
+      {status === 'generating' && (
+
+        <div className="flex flex-col items-center space-y-4">
+
+          <div className="relative">
+
+            <Sparkles className="h-10 w-10 animate-spin text-purple-500" />
+
+            <div className="absolute inset-0 h-10 w-10 border-4 border-purple-500/30 rounded-full animate-pulse" />
+
+          </div>
+
+          <div className="text-center">
+
+            <h3 className="font-semibold text-lg text-purple-600">Creating Your Image</h3>
+
+            <p className="text-sm text-purple-600/80">This might take a minute...</p>
+
+            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
+
+              <p className="text-sm text-purple-600 font-medium flex items-center justify-center">
+
+                <span className="text-red-500 mr-2">⚠️</span>
+
+                Do not close or refresh - Your image is being generated
+
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+
+      {status === 'error' && (
+
+        <div className="flex flex-col items-center space-y-4">
+
+          <XCircle className="h-12 w-12 text-red-500" />
+
+          <div className="text-center">
+
+            <h3 className="font-semibold text-lg text-red-600">Transaction Failed</h3>
+
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+
+              <p className="text-sm text-red-600/80">
+
+                {error?.includes('InvalidAccountData') 
+
+                  ? 'Invalid token account. Please ensure you have $AIDOBE tokens.'
+
+                  : error?.includes('InstructionError') 
+
+                    ? 'Transaction instruction failed. Please try again.'
+
+                    : error || 'Failed to process transaction'}
+
+              </p>
+
+            </div>
+
+            <p className="text-sm text-muted-foreground mt-4">
+
+              You can try again or check your wallet for details
+
+            </p>
+
+          </div>
+
+        </div>
+
+      )}
+
+    </div>
 
   );
 

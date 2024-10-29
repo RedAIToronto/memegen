@@ -10,6 +10,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { handleTransaction } from './image-generator/transaction-handler'
 import { PublicKey, Connection } from '@solana/web3.js'
 import { TransactionStatus, GeneratingPlaceholder } from "./image-generator/status-cards"
+import Image from 'next/image'
 
 const GENERATION_COST = 1000
 
@@ -21,6 +22,7 @@ export function ImageGenerator() {
   const [showCreateModel, setShowCreateModel] = useState(false)
   const [transactionStatus, setTransactionStatus] = useState('idle')
   const [transactionSignature, setTransactionSignature] = useState(null)
+  const [transactionError, setTransactionError] = useState(null)
   const { toast } = useToast()
   const wallet = useWallet()
   const [tokenMint, setTokenMint] = useState(null);
@@ -42,8 +44,10 @@ export function ImageGenerator() {
   }, []);
 
   const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || '', {
-    commitment: 'confirmed',
-    confirmTransactionInitialTimeout: 30000
+    commitment: 'processed',
+    confirmTransactionInitialTimeout: 30000,
+    wsEndpoint: process.env.NEXT_PUBLIC_RPC_WS || undefined,
+    disableRetryOnRateLimit: false
   })
 
   const models = [
@@ -54,7 +58,7 @@ export function ImageGenerator() {
       description: 'Generate FWOG-style memes'
     },
     { 
-      id: 'mew', 
+      id: 'meww', 
       name: 'MEW', 
       image: '/models/mew.png',
       description: 'Create MEW-inspired artwork'
@@ -90,48 +94,33 @@ export function ImageGenerator() {
         connection,
         wallet,
         amount: GENERATION_COST * Math.pow(10, 6),
-        tokenMint: tokenMint,
-        treasuryWallet: treasuryWallet,
+        tokenMint,
+        treasuryWallet,
         onStatus: (status) => {
-          toast({
-            title: "Transaction Status",
-            description: status,
-            duration: status.includes('Solscan') ? 10000 : 5000,
-          })
+          setTransactionStatus(status);
+          if (status === 'timeout') {
+            toast({
+              variant: "warning",
+              title: "Transaction Taking Longer",
+              description: "Please wait for retry prompt or check Solscan.",
+              duration: 6000,
+            });
+          }
         },
         onError: (error) => {
-          throw new Error(error)
+          throw error;
         }
-      })
+      });
 
       if (!signature) {
-        throw new Error('Transaction failed')
+        throw new Error('Transaction failed');
       }
 
-      setTransactionSignature(signature)
-      setTransactionStatus('confirming')
-
-      toast({
-        title: "Transaction Confirmed",
-        description: (
-          <div className="flex flex-col space-y-2">
-            <span>Payment processed successfully!</span>
-            <a
-              href={`https://solscan.io/tx/${signature}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline flex items-center"
-            >
-              View on Solscan
-              <ExternalLink className="h-3 w-3 ml-1" />
-            </a>
-          </div>
-        ),
-        duration: 8000,
-      })
-
-      // If transaction successful, proceed with generation
-      setTransactionStatus('generating')
+      setTransactionSignature(signature);
+      setTransactionStatus('confirmed');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setTransactionStatus('generating');
       
       const response = await fetch('/api/generate-image', {
         method: 'POST',
@@ -143,38 +132,64 @@ export function ImageGenerator() {
           model: selectedModel.id,
           walletAddress: wallet.publicKey.toString(),
           signature,
-        }),
-      })
+        })
+      });
 
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
-
-      if (data.generation?.imageUrl) {
-        setGeneratedImage(data.generation.imageUrl)
-      } else if (data.images?.[0]) {
-        setGeneratedImage(data.images[0])
-      } else if (typeof data.imageUrl === 'string') {
-        setGeneratedImage(data.imageUrl)
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start generation');
       }
 
-      setTransactionStatus('idle')
+      const data = await response.json();
       
-      toast({
-        title: "Success",
-        description: "Image generated successfully!",
-      })
+      if (!data.generationId) {
+        throw new Error('No generation ID returned');
+      }
+
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes with 5-second intervals
+      const pollInterval = 5000; // 5 seconds
+
+      while (attempts < maxAttempts) {
+        const statusResponse = await fetch(`/api/generations/status/${data.generationId}`);
+        const statusData = await statusResponse.json();
+
+        if (statusData.generation.status === 'completed' && statusData.generation.imageUrl) {
+          setGeneratedImage(statusData.generation.imageUrl);
+          setTransactionStatus('idle');
+          toast({
+            title: "Success",
+            description: "Image generated successfully!",
+          });
+          break;
+        } else if (statusData.generation.status === 'failed') {
+          throw new Error(statusData.generation.error || 'Generation failed');
+        }
+
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        attempts++;
+      }
+
+      if (attempts >= maxAttempts) {
+        throw new Error('Generation timed out');
+      }
+
     } catch (error) {
-      console.error('Generation error:', error)
-      setTransactionStatus('idle')
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to generate image",
-      })
+      console.error('Generation error:', error);
+      
+      if (!error.message?.includes('timeout')) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to generate image",
+        });
+      }
+      
+      setTransactionStatus('idle');
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-8">
@@ -291,11 +306,15 @@ export function ImageGenerator() {
           {/* Generated Image Display */}
           {generatedImage && transactionStatus === 'idle' && (
             <div className="mt-6 rounded-lg overflow-hidden shadow-xl transition-all hover:scale-[1.01] hover:shadow-purple-500/20">
-              <img 
+              <Image 
                 src={generatedImage}
                 alt="Generated image"
+                width={512}
+                height={512}
                 className="w-full rounded-lg"
+                loading="eager"
                 onError={(e) => {
+                  e.target.src = '/placeholder-image.png'
                   toast({
                     variant: "destructive",
                     title: "Error",

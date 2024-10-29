@@ -54,7 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 
 
 
-import { Trash2, Plus, RefreshCw, Download, Loader2, Sparkles, CheckCircle2, Upload } from 'lucide-react';
+import { Trash2, Plus, RefreshCw, Download, Loader2, Sparkles, CheckCircle2, Upload, XCircle } from 'lucide-react';
 
 
 
@@ -87,6 +87,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+
+
 
 
 
@@ -415,6 +417,23 @@ export default function AdminPage() {
 
 
   const [showAddModelDialog, setShowAddModelDialog] = useState(false);
+
+
+
+
+
+
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+
+
+
+
+
+
+  const [password, setPassword] = useState('');
+
 
 
 
@@ -1414,6 +1433,638 @@ export default function AdminPage() {
 
 
 
+  const handleDeleteFromQueue = async (itemId) => {
+
+
+
+
+
+
+
+    try {
+
+
+
+
+
+
+
+      const response = await fetch(`/api/admin/queue/${itemId}`, {
+
+
+
+
+
+
+
+        method: 'DELETE',
+
+
+
+
+
+
+
+        headers: {
+
+
+
+
+
+
+
+          'x-admin-token': process.env.NEXT_PUBLIC_ADMIN_SECRET
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+      });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      if (!response.ok) {
+
+
+
+
+
+
+
+        const error = await response.json();
+
+
+
+
+
+
+
+        throw new Error(error.error || 'Failed to delete from queue');
+
+
+
+
+
+
+
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      toast({
+
+
+
+
+
+
+
+        title: "Success",
+
+
+
+
+
+
+
+        description: "Item removed from queue",
+
+
+
+
+
+
+
+      });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      fetchQueue(); // Refresh the queue
+
+
+
+
+
+
+
+    } catch (error) {
+
+
+
+
+
+
+
+      console.error('Delete error:', error);
+
+
+
+
+
+
+
+      toast({
+
+
+
+
+
+
+
+        variant: "destructive",
+
+
+
+
+
+
+
+        title: "Error",
+
+
+
+
+
+
+
+        description: error.message || "Failed to delete from queue",
+
+
+
+
+
+
+
+      });
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleAuthenticate = (e) => {
+
+
+
+
+
+
+
+    e.preventDefault();
+
+
+
+
+
+
+
+    if (password === process.env.NEXT_PUBLIC_ADMIN_SECRET) {
+
+
+
+
+
+
+
+      setIsAuthenticated(true);
+
+
+
+
+
+
+
+      localStorage.setItem('adminAuthenticated', 'true');
+
+
+
+
+
+
+
+    } else {
+
+
+
+
+
+
+
+      toast({
+
+
+
+
+
+
+
+        variant: "destructive",
+
+
+
+
+
+
+
+        title: "Error",
+
+
+
+
+
+
+
+        description: "Invalid password"
+
+
+
+
+
+
+
+      });
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  useEffect(() => {
+
+
+
+
+
+
+
+    const isAuth = localStorage.getItem('adminAuthenticated');
+
+
+
+
+
+
+
+    if (isAuth === 'true') {
+
+
+
+
+
+
+
+      setIsAuthenticated(true);
+
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+  }, []);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (!isAuthenticated) {
+
+
+
+
+
+
+
+    return (
+
+
+
+
+
+
+
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-500/5 to-purple-500/5">
+
+
+
+
+
+
+
+        <Card className="w-[400px] p-6">
+
+
+
+
+
+
+
+          <CardHeader>
+
+
+
+
+
+
+
+            <CardTitle>Admin Authentication</CardTitle>
+
+
+
+
+
+
+
+          </CardHeader>
+
+
+
+
+
+
+
+          <CardContent>
+
+
+
+
+
+
+
+            <form onSubmit={handleAuthenticate} className="space-y-4">
+
+
+
+
+
+
+
+              <div className="space-y-2">
+
+
+
+
+
+
+
+                <Label>Password</Label>
+
+
+
+
+
+
+
+                <Input
+
+
+
+
+
+
+
+                  type="password"
+
+
+
+
+
+
+
+                  value={password}
+
+
+
+
+
+
+
+                  onChange={(e) => setPassword(e.target.value)}
+
+
+
+
+
+
+
+                  placeholder="Enter admin password"
+
+
+
+
+
+
+
+                />
+
+
+
+
+
+
+
+              </div>
+
+
+
+
+
+
+
+              <Button type="submit" className="w-full">
+
+
+
+
+
+
+
+                Login
+
+
+
+
+
+
+
+              </Button>
+
+
+
+
+
+
+
+            </form>
+
+
+
+
+
+
+
+          </CardContent>
+
+
+
+
+
+
+
+        </Card>
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+    );
+
+
+
+
+
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   if (isLoading) {
 
 
@@ -1487,6 +2138,102 @@ export default function AdminPage() {
 
 
     <div className="container mx-auto px-4 py-8">
+
+
+
+
+
+
+
+      <div className="flex justify-between items-center mb-8">
+
+
+
+
+
+
+
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+
+
+
+
+
+
+
+        <Button 
+
+
+
+
+
+
+
+          variant="ghost" 
+
+
+
+
+
+
+
+          onClick={() => {
+
+
+
+
+
+
+
+            localStorage.removeItem('adminAuthenticated');
+
+
+
+
+
+
+
+            setIsAuthenticated(false);
+
+
+
+
+
+
+
+          }}
+
+
+
+
+
+
+
+        >
+
+
+
+
+
+
+
+          Logout
+
+
+
+
+
+
+
+        </Button>
+
+
+
+
+
+
+
+      </div>
 
 
 
@@ -1711,6 +2458,14 @@ export default function AdminPage() {
 
 
                 onDownload={handleDownloadTraining}
+
+
+
+
+
+
+
+                onDelete={handleDeleteFromQueue}
 
 
 
@@ -2558,7 +3313,7 @@ const ModelCard = ({ model, onDelete }) => (
 
 
 
-const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
+const QueueCard = ({ item, onUpdateStatus, onDownload, onDelete }) => {
 
 
 
@@ -2678,7 +3433,79 @@ const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
 
 
 
-          {item.fileUrl && (
+          <div className="flex gap-2">
+
+
+
+
+
+
+
+            {item.fileUrl && (
+
+
+
+
+
+
+
+              <Button
+
+
+
+
+
+
+
+                variant="ghost"
+
+
+
+
+
+
+
+                size="icon"
+
+
+
+
+
+
+
+                onClick={() => onDownload(item.fileUrl)}
+
+
+
+
+
+
+
+              >
+
+
+
+
+
+
+
+                <Download className="h-4 w-4" />
+
+
+
+
+
+
+
+              </Button>
+
+
+
+
+
+
+
+            )}
 
 
 
@@ -2710,7 +3537,15 @@ const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
 
 
 
-              onClick={() => onDownload(item.fileUrl)}
+              onClick={() => onDelete(item.id)}
+
+
+
+
+
+
+
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
 
 
 
@@ -2726,7 +3561,7 @@ const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
 
 
 
-              <Download className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
 
 
 
@@ -2742,7 +3577,7 @@ const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
 
 
 
-          )}
+          </div>
 
 
 
@@ -2862,7 +3697,7 @@ const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
 
 
 
-const AddModelCard = () => (
+const AddModelCard = ({ onClick }) => (
 
 
 
@@ -2870,7 +3705,7 @@ const AddModelCard = () => (
 
 
 
-  <Card className="border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer">
+  <Card 
 
 
 
@@ -2878,7 +3713,7 @@ const AddModelCard = () => (
 
 
 
-    <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[300px] space-y-4">
+    className="cursor-pointer hover:shadow-lg transition-shadow"
 
 
 
@@ -2886,7 +3721,7 @@ const AddModelCard = () => (
 
 
 
-      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+    onClick={onClick}
 
 
 
@@ -2894,7 +3729,7 @@ const AddModelCard = () => (
 
 
 
-        <Plus className="h-6 w-6 text-primary" />
+  >
 
 
 
@@ -2902,7 +3737,7 @@ const AddModelCard = () => (
 
 
 
-      </div>
+    <CardContent className="flex flex-col items-center justify-center p-6">
 
 
 
@@ -2910,7 +3745,7 @@ const AddModelCard = () => (
 
 
 
-      <div className="text-center">
+      <Plus className="h-12 w-12 mb-4" />
 
 
 
@@ -2918,39 +3753,7 @@ const AddModelCard = () => (
 
 
 
-        <h3 className="font-semibold mb-1">Add New Model</h3>
-
-
-
-
-
-
-
-        <p className="text-sm text-muted-foreground">
-
-
-
-
-
-
-
-          Add a new Replicate model or upload your own
-
-
-
-
-
-
-
-        </p>
-
-
-
-
-
-
-
-      </div>
+      <h3 className="text-lg font-semibold">Add New Model</h3>
 
 
 
@@ -2975,9 +3778,6 @@ const AddModelCard = () => (
 
 
 );
-
-
-
 
 
 

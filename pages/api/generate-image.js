@@ -1,9 +1,13 @@
 import Replicate from "replicate";
 import { prisma } from '@/lib/prisma';
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+export const config = {
+  maxDuration: 300,
+  api: {
+    bodyParser: true,
+    responseLimit: false,
+  }
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,89 +15,110 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt, model, walletAddress } = req.body;
+    const { prompt, model, walletAddress, signature } = req.body;
 
-    console.log('📝 Generation Request:', { prompt, model, walletAddress });
-
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
+    if (!prompt || !model || !walletAddress || !signature) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        details: {
+          prompt: !prompt ? 'Required' : undefined,
+          model: !model ? 'Required' : undefined,
+          walletAddress: !walletAddress ? 'Required' : undefined,
+          signature: !signature ? 'Required' : undefined,
+        }
+      });
     }
 
-    // Format the prompt based on the model
-    const formattedPrompt = `${model.toUpperCase()} ${prompt}`;
-
-    console.log('🎨 Generate Image Request:', {
-      originalPrompt: prompt,
-      model,
-      formattedPrompt,
-      timestamp: new Date().toISOString(),
-    });
-
-    try {
-      // Create prediction using deployments
-      let prediction = await replicate.deployments.predictions.create(
-        "redaitoronto",
-        model.toLowerCase(), // fwog, mew, or any other model ID added in admin
-        {
-          input: {
-            prompt: formattedPrompt,
-            num_outputs: 1,
-            guidance_scale: 3.5,
-            num_inference_steps: 28,
-            model: "dev",
-            aspect_ratio: "1:1",
-            output_format: "png",
-            output_quality: 90
-          }
-        }
-      );
-
-      // Wait for prediction to complete
-      prediction = await replicate.wait(prediction);
-      console.log('✅ Generation Complete:', prediction);
-
-      if (!prediction.output || !Array.isArray(prediction.output)) {
-        throw new Error('Invalid output from model');
-      }
-
-      console.log('💾 Saving to database:', {
+    // Create a pending generation record - now without imageUrl
+    const generation = await prisma.generation.create({
+      data: {
         prompt,
-        imageUrl: prediction.output[0],
+        status: 'pending',
         model: model.toLowerCase(),
         modelName: model.toUpperCase(),
-        walletAddress
-      });
+        walletAddress,
+        signature,
+        createdAt: new Date()
+      }
+    });
 
-      // Store the generation in the database
-      const generation = await prisma.generation.create({
+    // Start the generation process in the background
+    generateImage(generation.id, prompt, model).catch(error => {
+      console.error('Background generation error:', error);
+      prisma.generation.update({
+        where: { id: generation.id },
         data: {
-          prompt,
-          imageUrl: prediction.output[0],
-          model: model.toLowerCase(),
-          modelName: model.toUpperCase(),
-          walletAddress,
-          createdAt: new Date()
+          status: 'failed',
+          error: error.message
         }
-      });
+      }).catch(console.error);
+    });
 
-      console.log('✅ Saved to database:', generation);
-
-      return res.status(200).json({
-        success: true,
-        images: prediction.output,
-        generation
-      });
-
-    } catch (error) {
-      console.error('❌ Error:', error);
-      throw new Error(`Failed to generate image: ${error.message}`);
-    }
+    // Immediately return the generation ID
+    return res.status(202).json({
+      success: true,
+      generationId: generation.id,
+      message: 'Generation started'
+    });
 
   } catch (error) {
     console.error('Generation error:', error);
-    return res.status(500).json({
-      success: false,
-      error: `Failed to generate image: ${error.message}`
+    return res.status(500).json({ 
+      error: 'Failed to start generation',
+      details: error.message
     });
+  }
+}
+
+async function generateImage(generationId, prompt, model) {
+  const replicate = new Replicate({
+    auth: process.env.REPLICATE_API_TOKEN,
+  });
+
+  try {
+    const formattedPrompt = `${model.toUpperCase()} ${prompt}`;
+    
+    const prediction = await replicate.deployments.predictions.create(
+      "redaitoronto",
+      model.toLowerCase(),
+      {
+        input: {
+          prompt: formattedPrompt,
+          num_outputs: 1,
+          guidance_scale: 3.5,
+          num_inference_steps: 28,
+          model: "dev",
+          aspect_ratio: "1:1",
+          output_format: "png",
+          output_quality: 90
+        }
+      }
+    );
+
+    const result = await replicate.wait(prediction);
+
+    if (!result.output || !Array.isArray(result.output)) {
+      throw new Error('Invalid output from model');
+    }
+
+    // Update the generation record with the result
+    await prisma.generation.update({
+      where: { id: generationId },
+      data: {
+        status: 'completed',
+        imageUrl: result.output[0],
+      }
+    });
+
+  } catch (error) {
+    console.error('Generation error:', error);
+    await prisma.generation.update({
+      where: { id: generationId },
+      data: {
+        status: 'failed',
+        error: error.message
+      }
+    });
+    throw error; // Re-throw to be caught by the caller
   }
 }

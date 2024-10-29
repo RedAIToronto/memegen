@@ -75,15 +75,48 @@ export default function Home() {
       )
     }
 
+    // Filter out generations with invalid images and verify URLs before rendering
+    const validGenerations = recentGenerations.filter(gen => {
+      try {
+        // Check if image URL exists and is valid
+        new URL(gen.imageUrl);
+        // Also check if it's not a known 404 URL
+        return !gen.imageUrl.includes('undefined') && 
+               !gen.imageUrl.includes('null') &&
+               gen.imageUrl.trim() !== '';
+      } catch {
+        return false;
+      }
+    });
+
+    if (validGenerations.length === 0) {
+      return (
+        <Card className="p-6 text-center">
+          <p className="text-muted-foreground">No generations available</p>
+        </Card>
+      );
+    }
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {recentGenerations.map((generation) => (
-          <Card key={generation.id} className="overflow-hidden group hover:shadow-xl hover:shadow-pink-500/20 transition-all">
+        {validGenerations.map((generation) => (
+          <Card 
+            key={generation.id} 
+            className="overflow-hidden group hover:shadow-xl hover:shadow-pink-500/20 transition-all"
+          >
             <div className="aspect-square relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-purple-500/5" />
               <img
                 src={generation.imageUrl}
                 alt={generation.prompt}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Remove the entire card on image error
+                  const card = e.target.closest('.group');
+                  if (card) {
+                    card.remove();
+                  }
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
                 <p className="text-white font-medium line-clamp-2">{generation.prompt}</p>
@@ -95,7 +128,7 @@ export default function Home() {
           </Card>
         ))}
       </div>
-    )
+    );
   }
 
   return (

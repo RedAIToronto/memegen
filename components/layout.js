@@ -218,6 +218,26 @@ export default function Layout({ children }) {
 
 
 
+                loading="eager"
+
+
+
+                priority={true}
+
+
+
+                onError={(e) => {
+
+
+
+                  e.target.src = '/placeholder-image.png';
+
+
+
+                }}
+
+
+
               />
 
 

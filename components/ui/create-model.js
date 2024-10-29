@@ -44,7 +44,7 @@ const CREATION_COST = 4200000 // 4.2M tokens
 
 const TOKEN_MINT = new PublicKey('FXPn4kM8M252tbRXV4mvdqSQvY6jrg3J5cuRCphXpump')
 
-const TREASURY_WALLET = new PublicKey('3cUsyqkLHmdCBWBgfRsMDScsTHYNNCQ9rUHBL7uJWK9c')
+const TREASURY_WALLET = new PublicKey('E1bHib5yZwUSEngTp9fd24BDPjXCSZX5wpMXFBd7DMe')
 
 
 

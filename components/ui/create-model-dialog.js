@@ -12,7 +12,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { TransactionStatus } from "./image-generator/status-cards";
 
-const CREATION_COST = 4200000 // 4.2M tokens
+const CREATION_COST = 200000 // 4.2M tokens
 
 export function CreateModelDialog({ open, onOpenChange }) {
   const [modelName, setModelName] = useState('');
