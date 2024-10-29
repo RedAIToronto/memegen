@@ -38,24 +38,13 @@ model AvailableModel {
   config       Json?   // Optional model-specific configuration
 }
 
-model Model {
-  id           String  @id
-  name         String
-  promptPrefix String
-  previewImage String
-  description  String?
-  owner        String  @default("redaitoronto")
-  modelId      String  @default("")
-  available    Boolean @default(true)
-  config       Json?
-}
-
 model Generation {
   id            String   @id @default(cuid())
   prompt        String
   imageUrl      String
   model         String
-  modelName     String?
-  walletAddress String?
+  modelName     String
+  walletAddress String?  // Optional field
   createdAt     DateTime @default(now())
+  status        String   @default("completed")
 }

@@ -7,17 +7,17 @@ import { Connection } from '@solana/web3.js';
 import { useMemo } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { ModelQueueProvider } from "@/contexts/ModelQueueContext";
-import { ErrorBoundary } from '@/components/error-boundary';
+import ErrorBoundary from '@/components/error-boundary';
 
-// Import all wallet adapter styles
+// Import wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-function MyApp({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
     // Use mainnet-beta network
     const network = WalletAdapterNetwork.Mainnet;
     
     // Use custom RPC endpoint
-    const endpoint = "https://ancient-polished-vineyard.solana-mainnet.quiknode.pro/a817e6fc23a679c7c8be054b999e17c42ab6597d/";
+    const endpoint = process.env.NEXT_PUBLIC_RPC_URL;
     
     // Configure the connection
     const connection = useMemo(
@@ -27,31 +27,26 @@ function MyApp({ Component, pageProps }) {
 
     // Initialize the Phantom wallet adapter
     const wallets = useMemo(
-        () => [
-            new PhantomWalletAdapter(),
-        ],
+        () => [new PhantomWalletAdapter()],
         []
     );
 
     return (
-        <ConnectionProvider endpoint={endpoint}>
-            <WalletProvider 
-                wallets={wallets} 
-                autoConnect={true}
-            >
-                <WalletModalProvider>
-                    <ModelQueueProvider>
-                        <div className="min-h-screen">
-                            <ErrorBoundary>
-                                <Component {...pageProps} />
-                            </ErrorBoundary>
-                            <Toaster />
-                        </div>
-                    </ModelQueueProvider>
-                </WalletModalProvider>
-            </WalletProvider>
-        </ConnectionProvider>
+        <ErrorBoundary>
+            <ConnectionProvider endpoint={endpoint}>
+                <WalletProvider wallets={wallets} autoConnect>
+                    <WalletModalProvider>
+                        <ModelQueueProvider>
+                            <div className="min-h-screen">
+                                <ErrorBoundary>
+                                    <Component {...pageProps} />
+                                </ErrorBoundary>
+                                <Toaster />
+                            </div>
+                        </ModelQueueProvider>
+                    </WalletModalProvider>
+                </WalletProvider>
+            </ConnectionProvider>
+        </ErrorBoundary>
     );
 }
-
-export default MyApp;

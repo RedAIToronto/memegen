@@ -6,26 +6,23 @@ export function ModelQueueProvider({ children }) {
   const [modelQueue, setModelQueue] = useState([]);
 
   const fetchQueue = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    
     try {
-      const response = await fetch('/api/admin/queue', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-        // Removed credentials: 'include' since it's a public endpoint
-      });
-
+      const response = await fetch('/api/generations/queue');
       const data = await response.json();
-      setModelQueue(data.queue || []);
+      if (data.success) {
+        setModelQueue(data.queue || []);
+      }
     } catch (error) {
       console.error('Failed to fetch queue:', error);
-      setModelQueue([]); // Set empty queue on error
+      setModelQueue([]);
     }
   }, []);
 
   const addToQueue = useCallback(async (modelData) => {
     try {
-      const response = await fetch('/api/admin/queue', {
+      const response = await fetch('/api/generations/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(modelData),
@@ -33,7 +30,7 @@ export function ModelQueueProvider({ children }) {
       
       if (!response.ok) throw new Error('Failed to add to queue');
       
-      await fetchQueue(); // Refresh queue after adding
+      await fetchQueue();
       return true;
     } catch (error) {
       console.error('Failed to add to queue:', error);

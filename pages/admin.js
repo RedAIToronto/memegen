@@ -1,553 +1,3039 @@
 import { useState, useEffect } from 'react';
-import { useModelQueue } from "@/contexts/ModelQueueContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, RefreshCw, ExternalLink, Loader2, Sparkles, CheckCircle2, Download } from 'lucide-react';
-import { useRouter } from 'next/router';
-import { AdminLogin } from '@/components/ui/admin-login';
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Add these status configurations
+
+
+
+
+
+
+import { useModelQueue } from "@/contexts/ModelQueueContext";
+
+
+
+
+
+
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+
+
+
+
+
+
+import { Button } from "@/components/ui/button";
+
+
+
+
+
+
+
+import { Input } from "@/components/ui/input";
+
+
+
+
+
+
+
+import { Label } from "@/components/ui/label";
+
+
+
+
+
+
+
+import { useToast } from "@/hooks/use-toast";
+
+
+
+
+
+
+
+import { Trash2, Plus, RefreshCw, Download, Loader2, Sparkles, CheckCircle2, Upload } from 'lucide-react';
+
+
+
+
+
+
+
+import { useRouter } from 'next/router';
+
+
+
+
+
+
+
+import { UploadButton } from "@/utils/uploadthing";
+
+
+
+
+
+
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
+
+
+
+
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const STATUS_CONFIGS = {
+
+
+
+
+
+
+
   preparing: {
+
+
+
+
+
+
+
     label: 'Preparing',
+
+
+
+
+
+
+
     color: 'bg-yellow-100 text-yellow-800',
+
+
+
+
+
+
+
     icon: Loader2,
+
+
+
+
+
+
+
     nextStatus: 'training'
+
+
+
+
+
+
+
   },
+
+
+
+
+
+
+
   training: {
+
+
+
+
+
+
+
     label: 'Training',
+
+
+
+
+
+
+
     color: 'bg-blue-100 text-blue-800',
+
+
+
+
+
+
+
     icon: Sparkles,
+
+
+
+
+
+
+
     nextStatus: 'completed'
+
+
+
+
+
+
+
   },
+
+
+
+
+
+
+
   completed: {
+
+
+
+
+
+
+
     label: 'Completed',
+
+
+
+
+
+
+
     color: 'bg-green-100 text-green-800',
+
+
+
+
+
+
+
     icon: CheckCircle2,
+
+
+
+
+
+
+
     nextStatus: null
+
+
+
+
+
+
+
   },
-  queued: {  // Add default status
+
+
+
+
+
+
+
+  queued: {
+
+
+
+
+
+
+
     label: 'Queued',
+
+
+
+
+
+
+
     color: 'bg-gray-100 text-gray-800',
+
+
+
+
+
+
+
     icon: Loader2,
+
+
+
+
+
+
+
     nextStatus: 'preparing'
+
+
+
+
+
+
+
   }
+
+
+
+
+
+
+
 };
 
-export default function AdminPanel() {
-  // All hooks at the top
-  const { modelQueue, removeFromQueue, clearQueue, fetchQueue } = useModelQueue();
-  const [uploads, setUploads] = useState([]);
-  const [availableModels, setAvailableModels] = useState([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export default function AdminPage() {
+
+
+
+
+
+
+
+  const [models, setModels] = useState([]);
+
+
+
+
+
+
+
+  const [queue, setQueue] = useState([]);
+
+
+
+
+
+
+
   const [isLoading, setIsLoading] = useState(true);
+
+
+
+
+
+
+
   const [newModel, setNewModel] = useState({
+
+
+
+
+
+
+
     id: '',
+
+
+
+
+
+
+
     name: '',
-    promptPrefix: '',
+
+
+
+
+
+
+
     previewImage: '',
-    description: '',
-    owner: '', // Replicate owner
-    modelId: '', // Replicate model ID
-    config: {}, // Model-specific configuration
+
+
+
+
+
+
+
+    description: ''
+
+
+
+
+
+
+
   });
+
+
+
+
+
+
+
   const { toast } = useToast();
+
+
+
+
+
+
+
   const router = useRouter();
 
-  // Authentication check
+
+
+
+
+
+
+  const [showAddModelDialog, setShowAddModelDialog] = useState(false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   useEffect(() => {
-    checkAuth();
+
+
+
+
+
+
+
+    fetchData();
+
+
+
+
+
+
+
   }, []);
 
-  // Data fetching
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUploads();
-      fetchModels();
-    }
-  }, [isAuthenticated]);
 
-  // Add useEffect to fetch queue on mount
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchQueue();
-    }
-  }, [isAuthenticated, fetchQueue]);
 
-  const checkAuth = async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+  const fetchData = async () => {
+
+
+
+
+
+
+
     try {
-      const response = await fetch('/api/admin/check-auth');
-      if (!response.ok) {
-        setIsAuthenticated(false);
-      } else {
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      setIsAuthenticated(false);
+
+
+
+
+
+
+
+      await Promise.all([
+
+
+
+
+
+
+
+        fetchModels(),
+
+
+
+
+
+
+
+        fetchQueue()
+
+
+
+
+
+
+
+      ]);
+
+
+
+
+
+
+
     } finally {
+
+
+
+
+
+
+
       setIsLoading(false);
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
   };
 
-  const fetchUploads = async () => {
-    try {
-      const response = await fetch('/api/admin/uploads');
-      const data = await response.json();
-      setUploads(data.uploads);
-    } catch (error) {
-      console.error('Failed to fetch uploads:', error);
-    }
-  };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const fetchModels = async () => {
-    try {
-      const response = await fetch('/api/admin/models');
-      const data = await response.json();
-      setAvailableModels(data.models);
-    } catch (error) {
-      console.error('Failed to fetch models:', error);
-    }
+
+
+
+
+
+
+
+    const response = await fetch('/api/admin/models');
+
+
+
+
+
+
+
+    const data = await response.json();
+
+
+
+
+
+
+
+    if (data.success) setModels(data.models);
+
+
+
+
+
+
+
   };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const fetchQueue = async () => {
+
+
+
+
+
+
+
+    const response = await fetch('/api/generations/queue');
+
+
+
+
+
+
+
+    const data = await response.json();
+
+
+
+
+
+
+
+    if (data.success) setQueue(data.queue);
+
+
+
+
+
+
+
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   const handleDeleteModel = async (modelId) => {
+
+
+
+
+
+
+
     try {
+
+
+
+
+
+
+
       const response = await fetch(`/api/admin/models/${modelId}`, {
-        method: 'DELETE',
+
+
+
+
+
+
+
+        method: 'DELETE'
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       if (!response.ok) throw new Error('Failed to delete model');
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       toast({
-        title: "Model Deleted",
-        description: "The model has been removed successfully.",
+
+
+
+
+
+
+
+        title: "Success",
+
+
+
+
+
+
+
+        description: "Model deleted successfully"
+
+
+
+
+
+
+
       });
 
-      // Refresh the models list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       fetchModels();
+
+
+
+
+
+
+
     } catch (error) {
-      console.error('Delete error:', error);
+
+
+
+
+
+
+
       toast({
+
+
+
+
+
+
+
         variant: "destructive",
+
+
+
+
+
+
+
         title: "Error",
-        description: "Failed to delete model. Please try again.",
+
+
+
+
+
+
+
+        description: "Failed to delete model"
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
   };
 
-  const handleAddModel = async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleAddModel = async (e) => {
+
+
+
+
+
+
+
+    e.preventDefault();
+
+
+
+
+
+
+
     try {
-      // Format the model data
-      const modelData = {
-        ...newModel,
-        id: newModel.id.toLowerCase(),
-        promptPrefix: newModel.promptPrefix.toUpperCase(),
-        owner: "redaitoronto", // Fixed owner
-        available: true,
-        config: {
-          owner: "redaitoronto",
-          modelId: newModel.modelId,
-        }
-      };
+
+
+
+
+
+
 
       const response = await fetch('/api/admin/models', {
+
+
+
+
+
+
+
         method: 'POST',
+
+
+
+
+
+
+
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(modelData),
+
+
+
+
+
+
+
+        body: JSON.stringify(newModel)
+
+
+
+
+
+
+
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to add model');
-      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      if (!response.ok) throw new Error('Failed to add model');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       toast({
-        title: "Model Added",
-        description: `${newModel.name} has been added successfully.`,
+
+
+
+
+
+
+
+        title: "Success",
+
+
+
+
+
+
+
+        description: "Model added successfully"
+
+
+
+
+
+
+
       });
 
-      // Reset form
-      setNewModel({
-        id: '',
-        name: '',
-        promptPrefix: '',
-        previewImage: '',
-        description: '',
-        owner: 'redaitoronto',
-        modelId: '',
-        config: {}
-      });
-      
-      // Refresh models list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      setNewModel({ id: '', name: '', previewImage: '', description: '' });
+
+
+
+
+
+
+
       fetchModels();
+
+
+
+
+
+
+
     } catch (error) {
-      console.error('Add model error:', error);
+
+
+
+
+
+
+
       toast({
+
+
+
+
+
+
+
         variant: "destructive",
+
+
+
+
+
+
+
         title: "Error",
-        description: error.message || "Failed to add model",
+
+
+
+
+
+
+
+        description: "Failed to add model"
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
   };
 
-  const handleStartTraining = async (modelId) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleUpdateStatus = async (modelId, newStatus) => {
+
+
+
+
+
+
+
     try {
-      // First set to preparing
-      await fetch(`/api/admin/queue/${modelId}`, {
+
+
+
+
+
+
+
+      const response = await fetch(`/api/admin/queue/${modelId}`, {
+
+
+
+
+
+
+
         method: 'PATCH',
+
+
+
+
+
+
+
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'preparing' }),
+
+
+
+
+
+
+
+        body: JSON.stringify({ status: newStatus })
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      if (!response.ok) throw new Error('Failed to update status');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       toast({
-        title: "Status Updated",
-        description: "Model is now preparing for training",
+
+
+
+
+
+
+
+        title: "Success",
+
+
+
+
+
+
+
+        description: "Status updated successfully"
+
+
+
+
+
+
+
       });
 
-      // Refresh the queue
-      await fetchQueue();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      fetchQueue();
+
+
+
+
+
+
 
     } catch (error) {
-      console.error('Failed to start training:', error);
+
+
+
+
+
+
+
       toast({
+
+
+
+
+
+
+
         variant: "destructive",
+
+
+
+
+
+
+
         title: "Error",
-        description: "Failed to start training",
+
+
+
+
+
+
+
+        description: "Failed to update status"
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
   };
 
-  const handleUpdateStatus = async (modelId, status) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleDownloadTraining = async (fileUrl) => {
+
+
+
+
+
+
+
     try {
-      await fetch(`/api/admin/queue/${modelId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
 
-      toast({
-        title: "Status Updated",
-        description: `Model status updated to ${status}`,
-      });
 
-      await fetchQueue();
+
+
+
+
+
+      const response = await fetch(fileUrl);
+
+
+
+
+
+
+
+      const blob = await response.blob();
+
+
+
+
+
+
+
+      const url = window.URL.createObjectURL(blob);
+
+
+
+
+
+
+
+      const a = document.createElement('a');
+
+
+
+
+
+
+
+      a.href = url;
+
+
+
+
+
+
+
+      a.download = 'training-data.zip';
+
+
+
+
+
+
+
+      document.body.appendChild(a);
+
+
+
+
+
+
+
+      a.click();
+
+
+
+
+
+
+
+      window.URL.revokeObjectURL(url);
+
+
+
+
+
+
+
+      document.body.removeChild(a);
+
+
+
+
+
+
+
     } catch (error) {
-      console.error('Failed to update status:', error);
+
+
+
+
+
+
+
       toast({
+
+
+
+
+
+
+
         variant: "destructive",
+
+
+
+
+
+
+
         title: "Error",
-        description: "Failed to update status",
+
+
+
+
+
+
+
+        description: "Failed to download file"
+
+
+
+
+
+
+
       });
+
+
+
+
+
+
+
     }
+
+
+
+
+
+
+
   };
 
-  // Add confirmation dialog for delete
-  const confirmDelete = (modelId) => {
-    if (window.confirm('Are you sure you want to delete this model?')) {
-      handleDeleteModel(modelId);
-    }
-  };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+
+
+
+
+
+
+
+    return (
+
+
+
+
+
+
+
+      <div className="flex items-center justify-center min-h-screen">
+
+
+
+
+
+
+
+        <Loader2 className="h-8 w-8 animate-spin" />
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+    );
+
+
+
+
+
+
+
   }
 
-  if (!isAuthenticated) {
-    return <AdminLogin onLogin={() => setIsAuthenticated(true)} />;
-  }
 
-  // Rest of your component remains the same...
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
-    <div className="container mx-auto p-8 space-y-8">
-      <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
 
-      {/* Queue Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            Training Queue
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={fetchQueue}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
-              <Button variant="outline" onClick={clearQueue}>Clear All</Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {modelQueue.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No models in queue
-              </div>
-            ) : (
-              modelQueue.map((model) => {
-                const statusConfig = STATUS_CONFIGS[model.status] || STATUS_CONFIGS.queued;
-                return (
-                  <div key={model.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full overflow-hidden">
-                        <img 
-                          src={model.previewImage} 
-                          alt={model.name} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = '/placeholder-image.png';
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <p className="font-medium">{model.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                            <statusConfig.icon className="h-3 w-3 inline mr-1" />
-                            {statusConfig.label}
-                          </span>
-                          {model.startedAt && (
-                            <span className="text-xs text-muted-foreground">
-                              Started: {new Date(model.startedAt).toLocaleString()}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {model.estimatedTime || 'Queued for training'}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Owner: {model.owner.slice(0, 4)}...{model.owner.slice(-4)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {/* Download ZIP button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(model.fileUrl, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        Training Data
-                      </Button>
-                      
-                      {statusConfig.nextStatus && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUpdateStatus(model.id, statusConfig.nextStatus)}
-                        >
-                          {statusConfig.nextStatus === 'training' ? 'Start Training' : 'Complete Training'}
-                        </Button>
-                      )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => removeFromQueue(model.id)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-100"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Available Models */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            Available Models
-            <Button variant="outline" onClick={fetchModels}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {availableModels.map((model) => (
-              <div key={model.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full overflow-hidden">
-                    <img 
-                      src={model.previewImage} 
-                      alt={model.name} 
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/placeholder-image.png';
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium">{model.name}</p>
-                    <p className="text-sm text-muted-foreground">ID: {model.id}</p>
-                    <p className="text-sm text-muted-foreground">Prefix: {model.promptPrefix}</p>
-                    <p className="text-sm text-muted-foreground">{model.description}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => confirmDelete(model.id)}
-                    className="text-red-500 hover:text-red-600 hover:bg-red-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+
+
+
+
+
+    <div className="container mx-auto px-4 py-8">
+
+
+
+
+
+
+
+      <Tabs defaultValue="models">
+
+
+
+
+
+
+
+        <TabsList className="mb-8">
+
+
+
+
+
+
+
+          <TabsTrigger value="models">Models</TabsTrigger>
+
+
+
+
+
+
+
+          <TabsTrigger value="queue">Queue</TabsTrigger>
+
+
+
+
+
+
+
+          <TabsTrigger value="add">Add Model</TabsTrigger>
+
+
+
+
+
+
+
+        </TabsList>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <TabsContent value="models">
+
+
+
+
+
+
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+
+
+
+
+
+
+            <AddModelCard onClick={() => setShowAddModelDialog(true)} />
+
+
+
+
+
+
+
+            {models.map(model => (
+
+
+
+
+
+
+
+              <ModelCard 
+
+
+
+
+
+
+
+                key={model.id} 
+
+
+
+
+
+
+
+                model={model} 
+
+
+
+
+
+
+
+                onDelete={handleDeleteModel}
+
+
+
+
+
+
+
+              />
+
+
+
+
+
+
+
             ))}
+
+
+
+
+
+
+
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Add New Model */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Model</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="modelId">Model ID</Label>
-                <Input
-                  id="modelId"
-                  value={newModel.id}
-                  onChange={(e) => setNewModel(prev => ({ 
-                    ...prev, 
-                    id: e.target.value.toLowerCase()
-                  }))}
-                  placeholder="e.g., pepe"
-                />
-                <p className="text-xs text-muted-foreground">
-                  This will be used as the prefix for prompts (e.g., "PEPE cat")
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="modelName">Display Name</Label>
-                <Input
-                  id="modelName"
-                  value={newModel.name}
-                  onChange={(e) => setNewModel(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="e.g., PEPE"
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="promptPrefix">Prompt Prefix</Label>
-              <Input
-                id="promptPrefix"
-                value={newModel.promptPrefix}
-                onChange={(e) => setNewModel(prev => ({ 
-                  ...prev, 
-                  promptPrefix: e.target.value.toUpperCase() 
-                }))}
-                placeholder="e.g., PEPE"
+
+
+
+
+
+        </TabsContent>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <TabsContent value="queue">
+
+
+
+
+
+
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+
+
+
+
+
+
+            {queue.map(item => (
+
+
+
+
+
+
+
+              <QueueCard 
+
+
+
+
+
+
+
+                key={item.id} 
+
+
+
+
+
+
+
+                item={item}
+
+
+
+
+
+
+
+                onUpdateStatus={handleUpdateStatus}
+
+
+
+
+
+
+
+                onDownload={handleDownloadTraining}
+
+
+
+
+
+
+
               />
-              <p className="text-xs text-muted-foreground">
-                This will be automatically added to all prompts
-              </p>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="previewImage">Preview Image URL</Label>
-              <Input
-                id="previewImage"
-                value={newModel.previewImage}
-                onChange={(e) => setNewModel(prev => ({ ...prev, previewImage: e.target.value }))}
-                placeholder="Image URL for model preview"
-              />
-              {newModel.previewImage && (
-                <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={newModel.previewImage}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      toast({
-                        variant: "destructive",
-                        title: "Invalid Image URL",
-                        description: "Please provide a valid image URL",
-                      });
-                    }}
+
+
+
+
+
+
+            ))}
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+        </TabsContent>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <TabsContent value="add">
+
+
+
+
+
+
+
+          <Dialog open={showAddModelDialog} onOpenChange={setShowAddModelDialog}>
+
+
+
+
+
+
+
+            <DialogContent>
+
+
+
+
+
+
+
+              <DialogHeader>
+
+
+
+
+
+
+
+                <DialogTitle>Add New Model</DialogTitle>
+
+
+
+
+
+
+
+                <DialogDescription>
+
+
+
+
+
+
+
+                  Add a new model by providing its details or uploading training data.
+
+
+
+
+
+
+
+                </DialogDescription>
+
+
+
+
+
+
+
+              </DialogHeader>
+
+
+
+
+
+
+
+              <form onSubmit={handleAddModel} className="space-y-4">
+
+
+
+
+
+
+
+                <div>
+
+
+
+
+
+
+
+                  <Label>Model ID</Label>
+
+
+
+
+
+
+
+                  <Input 
+
+
+
+
+
+
+
+                    value={newModel.id}
+
+
+
+
+
+
+
+                    onChange={e => setNewModel(prev => ({ ...prev, id: e.target.value }))}
+
+
+
+
+
+
+
+                    placeholder="e.g., fwog"
+
+
+
+
+
+
+
                   />
+
+
+
+
+
+
+
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                value={newModel.description}
-                onChange={(e) => setNewModel(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="e.g., Generate PEPE-style images"
-              />
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="owner">Replicate Owner</Label>
-                <Input
-                  id="owner"
-                  value={newModel.owner}
-                  onChange={(e) => setNewModel(prev => ({ ...prev, owner: e.target.value }))}
-                  placeholder="redaitoronto"
-                  disabled
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="replicateModel">Replicate Model ID</Label>
-                <Input
-                  id="replicateModel"
-                  value={newModel.modelId}
-                  onChange={(e) => setNewModel(prev => ({ ...prev, modelId: e.target.value }))}
-                  placeholder="e.g., pepe"
-                />
-              </div>
-            </div>
 
-            <Alert>
-              <AlertDescription>
-                <ul className="list-disc pl-4 space-y-1 text-sm">
-                  <li>Model ID will be used as the prefix in prompts</li>
-                  <li>Preview image should be a square image</li>
-                  <li>Model will be immediately available after adding</li>
-                  <li>Make sure the model exists in Replicate before adding</li>
-                </ul>
-              </AlertDescription>
-            </Alert>
 
-            <Button 
-              onClick={handleAddModel} 
-              className="w-full"
-              disabled={
-                !newModel.id || 
-                !newModel.name || 
-                !newModel.promptPrefix || 
-                !newModel.previewImage || 
-                !newModel.description ||
-                !newModel.modelId
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Model
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+
+
+
+                <div>
+
+
+
+
+
+
+
+                  <Label>Name</Label>
+
+
+
+
+
+
+
+                  <Input 
+
+
+
+
+
+
+
+                    value={newModel.name}
+
+
+
+
+
+
+
+                    onChange={e => setNewModel(prev => ({ ...prev, name: e.target.value }))}
+
+
+
+
+
+
+
+                    placeholder="Model name"
+
+
+
+
+
+
+
+                  />
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div>
+
+
+
+
+
+
+
+                  <Label>Preview Image</Label>
+
+
+
+
+
+
+
+                  <div className="space-y-2">
+
+
+
+
+
+
+
+                    <Input 
+
+
+
+
+
+
+
+                      value={newModel.previewImage}
+
+
+
+
+
+
+
+                      onChange={e => setNewModel(prev => ({ ...prev, previewImage: e.target.value }))}
+
+
+
+
+
+
+
+                      placeholder="Image URL"
+
+
+
+
+
+
+
+                    />
+
+
+
+
+
+
+
+                    <p className="text-sm text-muted-foreground">
+
+
+
+
+
+
+
+                      Or upload an image:
+
+
+
+
+
+
+
+                    </p>
+
+
+
+
+
+
+
+                    <UploadButton
+
+
+
+
+
+
+
+                      endpoint="imageUploader"
+
+
+
+
+
+
+
+                      onClientUploadComplete={(res) => {
+
+
+
+
+
+
+
+                        if (res?.[0]?.url) {
+
+
+
+
+
+
+
+                          setNewModel(prev => ({ ...prev, previewImage: res[0].url }));
+
+
+
+
+
+
+
+                        }
+
+
+
+
+
+
+
+                      }}
+
+
+
+
+
+
+
+                    />
+
+
+
+
+
+
+
+                  </div>
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <div>
+
+
+
+
+
+
+
+                  <Label>Description</Label>
+
+
+
+
+
+
+
+                  <Input 
+
+
+
+
+
+
+
+                    value={newModel.description}
+
+
+
+
+
+
+
+                    onChange={e => setNewModel(prev => ({ ...prev, description: e.target.value }))}
+
+
+
+
+
+
+
+                    placeholder="Model description"
+
+
+
+
+
+
+
+                  />
+
+
+
+
+
+
+
+                </div>
+
+
+
+
+
+
+
+                <DialogFooter>
+
+
+
+
+
+
+
+                  <Button type="button" variant="outline" onClick={() => setShowAddModelDialog(false)}>
+
+
+
+
+
+
+
+                    Cancel
+
+
+
+
+
+
+
+                  </Button>
+
+
+
+
+
+
+
+                  <Button type="submit">Add Model</Button>
+
+
+
+
+
+
+
+                </DialogFooter>
+
+
+
+
+
+
+
+              </form>
+
+
+
+
+
+
+
+            </DialogContent>
+
+
+
+
+
+
+
+          </Dialog>
+
+
+
+
+
+
+
+        </TabsContent>
+
+
+
+
+
+
+
+      </Tabs>
+
+
+
+
+
+
+
     </div>
+
+
+
+
+
+
+
   );
+
+
+
+
+
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const ModelCard = ({ model, onDelete }) => (
+
+
+
+
+
+
+
+  <Card>
+
+
+
+
+
+
+
+    <CardContent className="p-6">
+
+
+
+
+
+
+
+      <div className="flex justify-between items-start mb-4">
+
+
+
+
+
+
+
+        <div>
+
+
+
+
+
+
+
+          <h3 className="text-lg font-semibold">{model.name}</h3>
+
+
+
+
+
+
+
+          <p className="text-sm text-muted-foreground">{model.id}</p>
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <Button
+
+
+
+
+
+
+
+          variant="ghost"
+
+
+
+
+
+
+
+          size="icon"
+
+
+
+
+
+
+
+          onClick={() => onDelete(model.id)}
+
+
+
+
+
+
+
+        >
+
+
+
+
+
+
+
+          <Trash2 className="h-4 w-4" />
+
+
+
+
+
+
+
+        </Button>
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      {model.previewImage && (
+
+
+
+
+
+
+
+        <div className="aspect-square relative rounded-lg overflow-hidden">
+
+
+
+
+
+
+
+          <img
+
+
+
+
+
+
+
+            src={model.previewImage}
+
+
+
+
+
+
+
+            alt={model.name}
+
+
+
+
+
+
+
+            className="object-cover w-full h-full"
+
+
+
+
+
+
+
+          />
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+      )}
+
+
+
+
+
+
+
+    </CardContent>
+
+
+
+
+
+
+
+  </Card>
+
+
+
+
+
+
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const QueueCard = ({ item, onUpdateStatus, onDownload }) => {
+
+
+
+
+
+
+
+  const config = STATUS_CONFIGS[item.status || 'queued'];
+
+
+
+
+
+
+
+  const StatusIcon = config.icon;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return (
+
+
+
+
+
+
+
+    <Card>
+
+
+
+
+
+
+
+      <CardContent className="p-6">
+
+
+
+
+
+
+
+        <div className="flex justify-between items-start mb-4">
+
+
+
+
+
+
+
+          <div>
+
+
+
+
+
+
+
+            <h3 className="text-lg font-semibold">{item.name}</h3>
+
+
+
+
+
+
+
+            <div className={`${config.color} px-3 py-1 rounded-full text-sm inline-flex items-center mt-2`}>
+
+
+
+
+
+
+
+              <StatusIcon className="h-4 w-4 mr-2" />
+
+
+
+
+
+
+
+              {config.label}
+
+
+
+
+
+
+
+            </div>
+
+
+
+
+
+
+
+          </div>
+
+
+
+
+
+
+
+          {item.fileUrl && (
+
+
+
+
+
+
+
+            <Button
+
+
+
+
+
+
+
+              variant="ghost"
+
+
+
+
+
+
+
+              size="icon"
+
+
+
+
+
+
+
+              onClick={() => onDownload(item.fileUrl)}
+
+
+
+
+
+
+
+            >
+
+
+
+
+
+
+
+              <Download className="h-4 w-4" />
+
+
+
+
+
+
+
+            </Button>
+
+
+
+
+
+
+
+          )}
+
+
+
+
+
+
+
+        </div>
+
+
+
+
+
+
+
+        {config.nextStatus && (
+
+
+
+
+
+
+
+          <Button
+
+
+
+
+
+
+
+            className="w-full mt-4"
+
+
+
+
+
+
+
+            onClick={() => onUpdateStatus(item.id, config.nextStatus)}
+
+
+
+
+
+
+
+          >
+
+
+
+
+
+
+
+            Update to {STATUS_CONFIGS[config.nextStatus].label}
+
+
+
+
+
+
+
+          </Button>
+
+
+
+
+
+
+
+        )}
+
+
+
+
+
+
+
+      </CardContent>
+
+
+
+
+
+
+
+    </Card>
+
+
+
+
+
+
+
+  );
+
+
+
+
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const AddModelCard = () => (
+
+
+
+
+
+
+
+  <Card className="border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer">
+
+
+
+
+
+
+
+    <CardContent className="p-6 flex flex-col items-center justify-center h-full min-h-[300px] space-y-4">
+
+
+
+
+
+
+
+      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+
+
+
+
+
+
+
+        <Plus className="h-6 w-6 text-primary" />
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+      <div className="text-center">
+
+
+
+
+
+
+
+        <h3 className="font-semibold mb-1">Add New Model</h3>
+
+
+
+
+
+
+
+        <p className="text-sm text-muted-foreground">
+
+
+
+
+
+
+
+          Add a new Replicate model or upload your own
+
+
+
+
+
+
+
+        </p>
+
+
+
+
+
+
+
+      </div>
+
+
+
+
+
+
+
+    </CardContent>
+
+
+
+
+
+
+
+  </Card>
+
+
+
+
+
+
+
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

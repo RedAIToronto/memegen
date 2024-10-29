@@ -20,7 +20,12 @@ export default async function handler(req, res) {
     switch (req.method) {
       case 'GET':
         const queuedModels = await prisma.modelQueue.findMany({
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
+          where: {
+            status: {
+              not: 'completed'
+            }
+          }
         });
         return res.status(200).json({ queue: queuedModels });
 
@@ -40,6 +45,9 @@ export default async function handler(req, res) {
 
       case 'DELETE':
         const { id } = req.query;
+        if (!id) {
+          return res.status(400).json({ error: 'ID is required' });
+        }
         await prisma.modelQueue.delete({
           where: { id }
         });
