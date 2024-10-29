@@ -1,5 +1,5 @@
-import { useToast as useToastInternal } from "@/components/ui/toast"
+import { useToast as useToastOriginal } from "@/components/ui/toast"
 
-export const useToast = useToastInternal
+export const useToast = useToastOriginal
 
 

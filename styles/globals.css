@@ -103,3 +103,27 @@
     rgba(59,130,246,0.1) 100%
   );
 }
+
+/* Add float animation for logo */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-20px) rotate(2deg); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-twinkle {
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+/* Add sparkly cursor */
+.sparkly-cursor {
+  cursor: url('/sparkle-cursor.png'), auto;
+}

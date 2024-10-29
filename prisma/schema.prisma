@@ -15,15 +15,15 @@ datasource db {
 }
 
 model ModelQueue {
-  id           String    @id @default(cuid())
-  name         String
-  status       String    @default("queued") // queued, training, completed
-  fileUrl      String
-  previewImage String
-  createdAt    DateTime  @default(now())
-  startedAt    DateTime?
+  id            String   @id @default(cuid())
+  name          String   @unique
+  status        String   @default("preparing")
+  fileUrl       String
+  previewImage  String
+  createdAt     DateTime @default(now())
+  startedAt     DateTime?
   estimatedTime String?
-  owner        String    // wallet address
+  owner         String?
 }
 
 model AvailableModel {
@@ -40,11 +40,13 @@ model AvailableModel {
 
 model Generation {
   id            String   @id @default(cuid())
-  prompt        String
-  imageUrl      String
+  prompt        String   @db.Text
+  imageUrl      String   @db.Text
   model         String
   modelName     String
-  walletAddress String?  // Optional field
+  walletAddress String?
   createdAt     DateTime @default(now())
   status        String   @default("completed")
+
+  @@index([createdAt(sort: Desc)])
 }

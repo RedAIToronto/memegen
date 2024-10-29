@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,42 +9,9 @@ import { CreateModelDialog } from "./create-model-dialog"
 import { useWallet } from '@solana/wallet-adapter-react'
 import { handleTransaction } from './image-generator/transaction-handler'
 import { PublicKey, Connection } from '@solana/web3.js'
-import { TransactionStatus } from "./image-generator/status-cards"
+import { TransactionStatus, GeneratingPlaceholder } from "./image-generator/status-cards"
 
 const GENERATION_COST = 1000
-const TOKEN_MINT = new PublicKey(process.env.NEXT_PUBLIC_TOKEN_MINT)
-const TREASURY_WALLET = new PublicKey(process.env.NEXT_PUBLIC_TREASURY_WALLET)
-
-// Add RPC connection configuration
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL
-const connection = new Connection(RPC_URL, {
-  commitment: 'confirmed',
-  confirmTransactionInitialTimeout: 30000
-})
-
-function GeneratingPlaceholder() {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-shimmer" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="space-y-6 text-center">
-              <Sparkles className="h-12 w-12 animate-spin mx-auto text-primary" />
-              <div className="space-y-3">
-                <div className="h-4 w-48 bg-primary/20 rounded animate-pulse mx-auto" />
-                <div className="h-4 w-32 bg-primary/20 rounded animate-pulse mx-auto" />
-                <div className="text-sm text-muted-foreground animate-pulse">
-                  Generating your masterpiece...
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState('')
@@ -56,6 +23,28 @@ export function ImageGenerator() {
   const [transactionSignature, setTransactionSignature] = useState(null)
   const { toast } = useToast()
   const wallet = useWallet()
+  const [tokenMint, setTokenMint] = useState(null);
+  const [treasuryWallet, setTreasuryWallet] = useState(null);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TOKEN_MINT) {
+        const mintKey = new PublicKey(process.env.NEXT_PUBLIC_TOKEN_MINT);
+        setTokenMint(mintKey);
+      }
+      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_TREASURY_WALLET) {
+        const treasuryKey = new PublicKey(process.env.NEXT_PUBLIC_TREASURY_WALLET);
+        setTreasuryWallet(treasuryKey);
+      }
+    } catch (error) {
+      console.error('Failed to initialize PublicKeys:', error);
+    }
+  }, []);
+
+  const connection = new Connection(process.env.NEXT_PUBLIC_RPC_URL || '', {
+    commitment: 'confirmed',
+    confirmTransactionInitialTimeout: 30000
+  })
 
   const models = [
     { 
@@ -73,6 +62,15 @@ export function ImageGenerator() {
   ]
 
   const handleGenerate = async () => {
+    if (!tokenMint || !treasuryWallet) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Error",
+        description: "Missing required configuration. Please try again later.",
+      })
+      return
+    }
+
     if (!wallet.connected || !selectedModel || !prompt) {
       toast({
         variant: "destructive",
@@ -92,8 +90,8 @@ export function ImageGenerator() {
         connection,
         wallet,
         amount: GENERATION_COST * Math.pow(10, 6),
-        tokenMint: TOKEN_MINT,
-        treasuryWallet: TREASURY_WALLET,
+        tokenMint: tokenMint,
+        treasuryWallet: treasuryWallet,
         onStatus: (status) => {
           toast({
             title: "Transaction Status",
@@ -179,23 +177,22 @@ export function ImageGenerator() {
   }
 
   return (
-    <div className="space-y-12">
-      {/* Model Selection with enhanced styling */}
-      <div className="grid md:grid-cols-3 gap-8">
+    <div className="space-y-8">
+      {/* Model Selection - Vertical Cards in Single Row */}
+      <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
         {models.map((model) => (
           <Card 
             key={model.id}
-            className={`p-6 cursor-pointer transition-all hover:scale-[1.03] hover:shadow-2xl hover:shadow-pink-500/30 
-              backdrop-blur-sm bg-white/90 
+            className={`flex-shrink-0 w-[280px] p-6 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-500/30 
+              backdrop-blur-sm bg-white/90 snap-center
               ${selectedModel?.id === model.id ? 'ring-4 ring-pink-500 shadow-lg shadow-pink-500/30' : ''}
               group relative overflow-hidden`}
             onClick={() => setSelectedModel(model)}
           >
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-blue-500/20 to-purple-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
             
-            <div className="flex items-center gap-6 relative">
-              <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-lg">
+            <div className="space-y-4 relative">
+              <div className="w-full h-32 rounded-xl overflow-hidden bg-gradient-to-br from-pink-500/20 to-purple-500/20 shadow-lg">
                 <img 
                   src={model.image} 
                   alt={model.name}
@@ -207,6 +204,9 @@ export function ImageGenerator() {
                   {model.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">{model.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  Finetuned on {model.name}'s iconic meme style ✨
+                </p>
                 <div className="flex items-center gap-2 text-sm text-pink-500">
                   <Coins className="h-4 w-4" />
                   <span>1,000 $AIDOBE</span>
@@ -216,15 +216,15 @@ export function ImageGenerator() {
           </Card>
         ))}
 
-        {/* Create New Model Card - Smaller version */}
+        {/* Create Model Card */}
         <Card 
-          className="p-6 cursor-pointer transition-all hover:scale-[1.03] hover:shadow-2xl hover:shadow-pink-500/30 
-            backdrop-blur-sm bg-white/90 border-dashed border-2 border-pink-500/30 group relative"
+          className="flex-shrink-0 w-[280px] p-6 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-pink-500/30 
+            backdrop-blur-sm bg-white/90 border-dashed border-2 border-pink-500/30 group relative snap-center"
           onClick={() => setShowCreateModel(true)}
         >
-          <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <Plus className="h-8 w-8 text-pink-500" />
+          <div className="space-y-4">
+            <div className="w-full h-32 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <Plus className="h-12 w-12 text-pink-500" />
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
@@ -240,9 +240,8 @@ export function ImageGenerator() {
         </Card>
       </div>
 
-      {/* Generation Section with enhanced styling */}
+      {/* Generation Input */}
       <Card className="p-6 backdrop-blur-sm bg-white/90 hover:shadow-xl hover:shadow-purple-500/10 transition-all border-gradient relative overflow-hidden">
-        {/* Add sparkle effects */}
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-full blur-2xl animate-pulse" />
         <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-blue-500/10 to-purple-500/10 rounded-full blur-2xl animate-pulse" />
         
@@ -260,10 +259,10 @@ export function ImageGenerator() {
           <div className="flex gap-4">
             <Input
               id="prompt"
-              placeholder="Describe your meme..."
+              placeholder={selectedModel ? `Create a ${selectedModel.name} style meme...` : "Select a model above..."}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              disabled={isGenerating}
+              disabled={isGenerating || !selectedModel}
               className="flex-1 border-pink-500/20 focus:border-purple-500 focus:ring-purple-500/20 transition-all
                 bg-white/50 backdrop-blur-sm text-lg"
             />
@@ -316,5 +315,3 @@ export function ImageGenerator() {
     </div>
   )
 }
-
-export default ImageGenerator

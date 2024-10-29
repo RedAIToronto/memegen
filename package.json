@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "check": "node check-project.js",
-    "rename": "node scripts/rename-extensions.js"
+    "rename": "node scripts/rename-extensions.js",
+    "vercel-build": "npx prisma generate && npx prisma db push --accept-data-loss && next build",
+    "postinstall": "npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.21.1",
@@ -43,7 +45,9 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "uploadthing": "^7.2.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "bufferutil": "^4.0.8",
+    "utf-8-validate": "^6.0.3"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",

@@ -1,24 +1,34 @@
 import { createContext, useContext, useState, useCallback } from 'react';
+import { useToast } from "@/hooks/use-toast";
 
 const ModelQueueContext = createContext();
 
 export function ModelQueueProvider({ children }) {
   const [modelQueue, setModelQueue] = useState([]);
+  const { toast } = useToast();
 
   const fetchQueue = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    
     try {
-      const response = await fetch('/api/generations/queue');
-      const data = await response.json();
+      const response = await fetch('/api/generations/queue')
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch queue')
+      }
+      
       if (data.success) {
-        setModelQueue(data.queue || []);
+        setModelQueue(data.queue || [])
       }
     } catch (error) {
-      console.error('Failed to fetch queue:', error);
-      setModelQueue([]);
+      console.error('Queue fetch error:', error)
+      setModelQueue([]) // Set empty array on error
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load queue"
+      })
     }
-  }, []);
+  }, [toast]);
 
   const addToQueue = useCallback(async (modelData) => {
     try {
