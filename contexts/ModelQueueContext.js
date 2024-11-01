@@ -17,7 +17,13 @@ export function ModelQueueProvider({ children }) {
       }
       
       if (data.success) {
-        setModelQueue(data.queue || [])
+        const newQueue = data.queue || [];
+        setModelQueue(prevQueue => {
+          if (JSON.stringify(prevQueue) !== JSON.stringify(newQueue)) {
+            return newQueue;
+          }
+          return prevQueue;
+        });
       }
     } catch (error) {
       console.error('Queue fetch error:', error)
@@ -49,7 +55,11 @@ export function ModelQueueProvider({ children }) {
   }, [fetchQueue]);
 
   return (
-    <ModelQueueContext.Provider value={{ modelQueue, fetchQueue, addToQueue }}>
+    <ModelQueueContext.Provider value={{ 
+      modelQueue, 
+      fetchQueue,
+      addToQueue 
+    }}>
       {children}
     </ModelQueueContext.Provider>
   );

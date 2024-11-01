@@ -65,8 +65,8 @@ export function WalletBalance() {
     };
 
     fetchBalances();
-    // Set up an interval to refresh balances every 30 seconds
-    const intervalId = setInterval(fetchBalances, 30000);
+    // Change from 30000 (30 sec) to 60000 (1 min)
+    const intervalId = setInterval(fetchBalances, 60000); // Poll every minute
 
     return () => clearInterval(intervalId);
   }, [connection, publicKey]);

@@ -228,7 +228,7 @@ export function ImageGenerator() {
 
   const pollGenerationStatus = async (generationId) => {
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = 30;
     
     while (attempts < maxAttempts) {
       try {
@@ -257,7 +257,8 @@ export function ImageGenerator() {
           }
         }
         
-        const delay = Math.min(5000 * Math.pow(1.1, attempts), 15000);
+        const baseDelay = 10000;
+        const delay = Math.min(baseDelay * Math.pow(1.1, attempts), 30000);
         await new Promise(resolve => setTimeout(resolve, delay));
         attempts++;
         
@@ -271,19 +272,20 @@ export function ImageGenerator() {
   };
 
   const AnnouncementBanner = () => (
-    <div className="mb-8 p-4 rounded-lg bg-purple-50 border border-purple-100">
+    <div className="mb-8 p-4 rounded-lg bg-gray-50 border border-gray-200">
       <div className="flex items-center justify-center">
         <div className="text-center">
-          <h3 className="font-semibold text-purple-900">Token Information</h3>
-          <p className="text-sm text-purple-700">
-            Generate memes using $FWOG tokens • Cost per generation: 5 $FWOG
+          <h3 className="font-semibold text-gray-900">Token Information</h3>
+          <p className="text-sm text-gray-600">
+            Currently using $FWOG tokens (Future integration: $GEN) • Cost per generation: 5 $FWOG
             <a 
               href="https://raydium.io/swap/?inputMint=sol&outputMint=A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="ml-2 text-purple-600 hover:text-purple-700 font-medium"
+              className="ml-2 text-black hover:text-gray-600 font-medium inline-flex items-center"
             >
-              Get Tokens →
+              Get $FWOG
+              <ExternalLink className="h-3 w-3 ml-1" />
             </a>
           </p>
         </div>
@@ -382,10 +384,19 @@ export function ImageGenerator() {
             <Button 
               onClick={handleGenerate} 
               disabled={isGenerating || !prompt || !selectedModel || !wallet.connected}
-              className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 
-                transition-all duration-300 transform hover:scale-[1.02] relative group overflow-hidden px-8 text-lg font-bold"
+              className="bg-black hover:bg-gray-900 text-white transition-all px-8 text-lg"
             >
-              {isGenerating ? 'Generating...' : 'Generate'}
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate
+                </>
+              )}
             </Button>
           </div>
 

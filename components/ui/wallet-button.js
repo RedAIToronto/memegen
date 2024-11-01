@@ -20,7 +20,7 @@ export function WalletButton() {
     return (
       <Button 
         onClick={() => setVisible(true)}
-        className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+        className="bg-black hover:bg-gray-900 text-white transition-all"
       >
         <Wallet className="mr-2 h-4 w-4" />
         Connect Wallet
@@ -31,8 +31,8 @@ export function WalletButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="border-pink-500/20">
-          <Wallet className="mr-2 h-4 w-4 text-pink-500" />
+        <Button variant="outline" className="border-gray-200 hover:bg-gray-50">
+          <Wallet className="mr-2 h-4 w-4 text-gray-700" />
           {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
         </Button>
       </DropdownMenuTrigger>

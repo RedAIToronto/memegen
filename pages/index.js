@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import Layout from '@/components/layout'
 import { ImageGenerator } from "@/components/ui/image-generator"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Coins, ImageIcon, Plus } from "lucide-react"
+import { Sparkles, Coins, ImageIcon, Plus, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import Image from "next/image"
@@ -39,6 +39,8 @@ export default function Home() {
 
     if (isClient) {
       fetchRecentGenerations()
+      const interval = setInterval(fetchRecentGenerations, 120000);
+      return () => clearInterval(interval);
     }
   }, [isClient])
 
@@ -110,12 +112,11 @@ export default function Home() {
                 src={generation.imageUrl}
                 alt={generation.prompt}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Remove the entire card on image error
-                  const card = e.target.closest('.group');
-                  if (card) {
-                    card.remove();
-                  }
+                onError={() => {
+                  // Instead of DOM manipulation, use state to hide invalid images
+                  setRecentGenerations(prev => 
+                    prev.filter(gen => gen.id !== generation.id)
+                  );
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-end">
@@ -133,73 +134,297 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-b from-pink-500/5 via-purple-500/5 to-transparent">
-        <div className="container mx-auto px-4 py-8">
-          {/* Hero Section */}
-          <section className="relative py-8 mb-12">
-            {/* Remove kawaii decorations */}
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-50 via-purple-50 to-transparent" />
-            </div>
-            
-            <div className="relative flex items-center justify-between">
-              {/* Left side content */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="max-w-xl"
+      <div className="min-h-screen bg-white">
+        {/* Hero Section */}
+        <section className="relative min-h-[90vh] flex items-center py-20 overflow-hidden">
+          {/* Animated Background */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0 bg-gradient-to-b from-white via-white/95 to-white/90"
+            />
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex flex-col lg:flex-row items-center gap-16">
+              {/* Left Content */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="flex-1 max-w-2xl"
               >
-                <h1 className="text-6xl font-bold text-gray-900 mb-4">
-                  MemeGen
-                </h1>
-                <p className="text-2xl text-gray-600 mb-6">
-                  AI-Powered Meme Generation Platform
-                </p>
-                <div className="flex gap-4">
-                  <Link href="#generate">
-                    <Button className="bg-purple-600 hover:bg-purple-700 text-lg px-8">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Start Generating
-                    </Button>
-                  </Link>
-                  <Link href="https://raydium.io/swap/?inputMint=sol&outputMint=A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump" target="_blank">
-                    <Button variant="outline" className="text-lg px-8 border-purple-200">
-                      <Coins className="mr-2 h-4 w-4" />
-                      Get $FWOG
-                    </Button>
-                  </Link>
+                {/* Status Badge */}
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="inline-flex items-center gap-2 bg-black/5 rounded-full px-4 py-2 text-sm mb-8 
+                    hover:bg-black/10 transition-colors cursor-pointer group"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                  <span className="text-gray-600 font-medium group-hover:text-gray-900 transition-colors">
+                    Powered by $FWOG tokens
+                  </span>
+                </motion.div>
+
+                {/* Main Title */}
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-6xl md:text-7xl font-bold text-black leading-[1.1] tracking-tight mb-6"
+                >
+                  Generate
+                  <br />
+                  <span className="inline-block relative">
+                    Memes with AI
+                    <motion.div 
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: 1, duration: 0.8 }}
+                      className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500"
+                    />
+                  </span>
+                </motion.h1>
+
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="text-xl text-gray-600 leading-relaxed mb-8 max-w-lg"
+                >
+                  Create unique, high-quality memes using advanced AI models. Fast, simple, and powered by $FWOG.
+                </motion.p>
+
+                {/* CTA Buttons */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.9 }}
+                  className="flex flex-col sm:flex-row gap-4"
+                >
+                  <Button 
+                    className="bg-black text-white hover:bg-gray-900 px-8 py-6 text-lg rounded-xl
+                      shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 
+                      group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="relative flex items-center">
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Start Creating
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </Button>
+
+                  <a
+                    href="https://raydium.io/swap"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center px-8 py-6 text-lg rounded-xl
+                      border-2 border-black/10 hover:border-black/20 text-gray-600 hover:text-gray-900
+                      hover:bg-black/5 transition-all duration-300 group"
+                  >
+                    <Coins className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+                    Get $FWOG
+                  </a>
+                </motion.div>
+
+                {/* Stats */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.1 }}
+                  className="grid grid-cols-3 gap-8 mt-16"
+                >
+                  {[
+                    { label: 'Active Models', value: '10+' },
+                    { label: 'Memes Generated', value: '50k+' },
+                    { label: 'Happy Users', value: '1000+' }
+                  ].map((stat, i) => (
+                    <motion.div 
+                      key={i}
+                      whileHover={{ scale: 1.05 }}
+                      className="relative group cursor-pointer"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 
+                        rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="relative">
+                        <div className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 
+                          bg-clip-text text-transparent mb-1">{stat.value}</div>
+                        <div className="text-sm text-gray-500">{stat.label}</div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+
+              {/* Right Image */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5, duration: 0.8 }}
+                className="flex-1 relative"
+              >
+                <div className="relative w-full aspect-square max-w-[560px] mx-auto">
+                  {/* Image Effects */}
+                  <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 to-pink-500/20 
+                    rounded-3xl blur-3xl animate-pulse" />
+                  <motion.div 
+                    animate={{ 
+                      rotate: [0, 2, 0], 
+                      scale: [1, 1.02, 1],
+                    }}
+                    transition={{ 
+                      duration: 5,
+                      repeat: Infinity,
+                      ease: "easeInOut" 
+                    }}
+                    className="relative rounded-2xl overflow-hidden shadow-2xl"
+                  >
+                    <Image
+                      src="https://replicate.delivery/yhqm/lfZAQhbFjVTKZKYn25uLPUdd2PiS1pZhQFyfeTA1PN4owkXnA/R8_sd3.5L_00001_.webp"
+                      alt="AI Meme Generation"
+                      width={560}
+                      height={560}
+                      className="object-cover rounded-2xl transform hover:scale-105 transition-transform duration-700"
+                      priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent 
+                      opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                  </motion.div>
                 </div>
               </motion.div>
-
-              {/* Right side logo */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative w-[300px] h-[300px]"
-              >
-                <Image
-                  src="https://pbs.twimg.com/media/GbAtotSWcAA5Uh2?format=png&name=small"
-                  alt="MemeGen"
-                  fill
-                  className="object-contain"
-                />
-              </motion.div>
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Generator Section */}
-          <section id="generate" className="scroll-mt-16">
+        {/* Features Section */}
+        <section className="py-24 bg-gray-50/50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <span className="text-sm font-medium bg-black/5 px-3 py-1 rounded-full">
+                Features
+              </span>
+              <h2 className="mt-4 text-4xl font-bold text-gray-900">
+                Everything You Need
+              </h2>
+              <p className="mt-2 text-lg text-gray-600 max-w-2xl mx-auto">
+                Create unique memes with advanced AI models
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  title: "Multiple Models",
+                  description: "Choose from various pre-trained models or create your own custom style",
+                  icon: "🎨"
+                },
+                {
+                  title: "Fast Generation",
+                  description: "Generate unique memes in seconds with optimized infrastructure",
+                  icon: "⚡"
+                },
+                {
+                  title: "Token Powered",
+                  description: "Simple pay-per-use system with $FWOG tokens",
+                  icon: "💎"
+                }
+              ].map((feature, i) => (
+                <div 
+                  key={i} 
+                  className="relative group p-8 bg-white rounded-2xl hover:shadow-xl transition-all duration-300"
+                >
+                  <div className="text-3xl mb-4">{feature.icon}</div>
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.description}</p>
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/[0.02] to-black/[0.01] 
+                    rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Generator Section */}
+        <section id="generate" className="py-24">
+          <div className="container mx-auto px-4">
             <ImageGenerator />
-          </section>
+          </div>
+        </section>
 
-          {/* Recent Generations with better error handling */}
-          <section className="mt-16">
-            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
-              Recent Generations ✨
-            </h2>
+        {/* Recent Generations */}
+        <section className="py-24 bg-gray-50/50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <span className="text-sm font-medium bg-black/5 px-3 py-1 rounded-full">
+                Gallery
+              </span>
+              <h2 className="mt-4 text-4xl font-bold text-gray-900">
+                Recent Generations
+              </h2>
+              <p className="mt-2 text-lg text-gray-600 max-w-2xl mx-auto">
+                Check out what others are creating
+              </p>
+            </div>
             {renderGenerations()}
-          </section>
-        </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="py-24">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <span className="text-sm font-medium bg-black/5 px-3 py-1 rounded-full">
+                Process
+              </span>
+              <h2 className="mt-4 text-4xl font-bold text-gray-900">
+                How It Works
+              </h2>
+              <p className="mt-2 text-lg text-gray-600 max-w-2xl mx-auto">
+                Generate memes in three simple steps
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-12">
+              {[
+                {
+                  step: "01",
+                  title: "Connect Wallet",
+                  description: "Connect your Solana wallet and get $FWOG tokens"
+                },
+                {
+                  step: "02",
+                  title: "Choose Model",
+                  description: "Select from our collection of AI models"
+                },
+                {
+                  step: "03",
+                  title: "Generate",
+                  description: "Enter your prompt and create unique memes"
+                }
+              ].map((item, i) => (
+                <div key={i} className="relative group">
+                  <div className="text-[120px] font-bold text-black/[0.03] absolute -top-10 -left-6 select-none 
+                    group-hover:text-black/[0.05] transition-colors duration-300">
+                    {item.step}
+                  </div>
+                  <div className="relative bg-white p-8 rounded-2xl hover:shadow-xl transition-all duration-300">
+                    <h3 className="text-xl font-semibold mb-4">{item.title}</h3>
+                    <p className="text-gray-600">{item.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     </Layout>
   )
