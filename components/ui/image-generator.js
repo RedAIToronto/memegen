@@ -13,9 +13,9 @@ import { TransactionStatus, GeneratingPlaceholder } from "./image-generator/stat
 import Image from 'next/image'
 import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token'
 
-const GENERATION_COST = 5 // 5 FWOG tokens
-const TOKEN_MINT = new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump')
-const TREASURY_WALLET = new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw')
+const GENERATION_COST = 5 // 5 $COM tokens
+const TOKEN_MINT = new PublicKey('8YQUyFYLHNYGPqE3WrgjhbqRPgqCPMfQVxBzHGGe7KJw') // $COM token mint
+const TREASURY_WALLET = new PublicKey('8HwqhAkHC4nQhGpP6UBXuPNt8DYsCyYGHhDaaHqRvv7N') // Treasury wallet
 
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState('')
@@ -34,8 +34,8 @@ export function ImageGenerator() {
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
-        setTokenMint(new PublicKey('A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump'));
-        setTreasuryWallet(new PublicKey('Cabg7viFVH2Dd8cELWNQqcHRW8NfVngo1L7i2YkLGCDw'));
+        setTokenMint(new PublicKey('8YQUyFYLHNYGPqE3WrgjhbqRPgqCPMfQVxBzHGGe7KJw'));
+        setTreasuryWallet(new PublicKey('8HwqhAkHC4nQhGpP6UBXuPNt8DYsCyYGHhDaaHqRvv7N'));
       }
     } catch (error) {
       console.error('Failed to initialize PublicKeys:', error);
@@ -79,14 +79,14 @@ export function ImageGenerator() {
           toast({
             variant: "destructive",
             title: "Insufficient Balance",
-            description: `You need ${GENERATION_COST} $FWOG tokens. Current balance: ${balance.toLocaleString()}`,
+            description: `You need ${GENERATION_COST} $COM tokens. Current balance: ${balance.toLocaleString()}`,
             action: (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open('https://raydium.io/swap', '_blank')}
               >
-                Get $FWOG
+                Get $COM
               </Button>
             )
           });
@@ -96,15 +96,15 @@ export function ImageGenerator() {
       } catch (e) {
         toast({
           variant: "destructive",
-          title: "No $FWOG Tokens",
-          description: "You need $FWOG tokens to generate images",
+          title: "No $COM Tokens",
+          description: "You need $COM tokens to generate images",
           action: (
             <Button
               variant="outline"
               size="sm"
               onClick={() => window.open('https://raydium.io/swap', '_blank')}
             >
-              Get $FWOG
+              Get $COM
             </Button>
           )
         });
@@ -155,14 +155,14 @@ export function ImageGenerator() {
           if (status === 'creating_account') {
             toast({
               title: "Creating Token Account",
-              description: "Setting up your $FWOG token account...",
+              description: "Setting up your $COM token account...",
               duration: 5000,
             });
           }
         },
         onError: (error) => {
           if (error.message?.includes('insufficient funds')) {
-            throw new Error(`You need ${GENERATION_COST} $FWOG tokens for this generation.`);
+            throw new Error(`You need ${GENERATION_COST} $COM tokens for this generation.`);
           }
           throw error;
         }
@@ -277,14 +277,14 @@ export function ImageGenerator() {
         <div className="text-center">
           <h3 className="font-semibold text-gray-900">Token Information</h3>
           <p className="text-sm text-gray-600">
-            Currently using $FWOG tokens (Future integration: $GEN) • Cost per generation: 5 $FWOG
+            Using $COM tokens • Cost per generation: 5 $COM
             <a 
-              href="https://raydium.io/swap/?inputMint=sol&outputMint=A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump" 
+              href="https://raydium.io/swap/?inputMint=sol&outputMint=COMpKYkYyVJHMmHtJh4YuMsEVzV5wBhQVVGKqnW5LM5" 
               target="_blank" 
               rel="noopener noreferrer"
               className="ml-2 text-black hover:text-gray-600 font-medium inline-flex items-center"
             >
-              Get $FWOG
+              Get $COM
               <ExternalLink className="h-3 w-3 ml-1" />
             </a>
           </p>
@@ -321,7 +321,7 @@ export function ImageGenerator() {
                 <p className="text-sm text-secondary-500">{model.description}</p>
                 <div className="flex items-center gap-2 text-sm text-primary-600">
                   <Coins className="h-4 w-4" />
-                  <span>5 $FWOG</span>
+                  <span>5 $COM</span>
                 </div>
               </div>
             </div>
@@ -347,7 +347,7 @@ export function ImageGenerator() {
               <p className="text-sm text-secondary-500">Train your own model</p>
               <div className="flex items-center gap-2 text-sm text-primary-600">
                 <Coins className="h-4 w-4" />
-                <span>5 $FWOG</span>
+                <span>5 $COM</span>
               </div>
             </div>
           </div>
@@ -366,7 +366,7 @@ export function ImageGenerator() {
             </Label>
             <div className="flex items-center text-sm font-medium text-pink-500">
               <Coins className="h-4 w-4 mr-1" />
-              Cost: {GENERATION_COST} $FWOG
+              Cost: {GENERATION_COST} $COM
             </div>
           </div>
           

@@ -170,7 +170,7 @@ export default function Home() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                   </span>
                   <span className="text-gray-600 font-medium group-hover:text-gray-900 transition-colors">
-                    Powered by $FWOG tokens
+                    Powered by $COM tokens
                   </span>
                 </motion.div>
 
@@ -200,7 +200,7 @@ export default function Home() {
                   transition={{ delay: 0.7 }}
                   className="text-xl text-gray-600 leading-relaxed mb-8 max-w-lg"
                 >
-                  Create unique, high-quality memes using advanced AI models. Fast, simple, and powered by $FWOG.
+                  Create unique, high-quality memes using advanced AI models. Fast, simple, and powered by $COM.
                 </motion.p>
 
                 {/* CTA Buttons */}
@@ -232,7 +232,7 @@ export default function Home() {
                       hover:bg-black/5 transition-all duration-300 group"
                   >
                     <Coins className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-                    Get $FWOG
+                    Get $COM
                   </a>
                 </motion.div>
 
@@ -334,7 +334,7 @@ export default function Home() {
                 },
                 {
                   title: "Token Powered",
-                  description: "Simple pay-per-use system with $FWOG tokens",
+                  description: "Simple pay-per-use system with $COM tokens",
                   icon: "💎"
                 }
               ].map((feature, i) => (
@@ -398,7 +398,7 @@ export default function Home() {
                 {
                   step: "01",
                   title: "Connect Wallet",
-                  description: "Connect your Solana wallet and get $FWOG tokens"
+                  description: "Connect your Solana wallet and get $COM tokens"
                 },
                 {
                   step: "02",

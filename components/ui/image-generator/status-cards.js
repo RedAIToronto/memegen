@@ -12,7 +12,7 @@ export function GeneratingPlaceholder() {
   )
 }
 
-const RAYDIUM_URL = "https://raydium.io/swap/?inputMint=sol&outputMint=A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump"
+const RAYDIUM_URL = "https://raydium.io/swap/?inputMint=sol&outputMint=8YQUyFYLHNYGPqE3WrgjhbqRPgqCPMfQVxBzHGGe7KJw"
 
 export const TransactionStatus = ({ status, signature, message, retryCount, error }) => {
   const getTokenButton = (
@@ -22,7 +22,7 @@ export const TransactionStatus = ({ status, signature, message, retryCount, erro
       rel="noopener noreferrer"
       className="inline-flex items-center px-4 py-2 text-sm font-medium text-pink-500 bg-pink-50 rounded-md hover:bg-pink-100 transition-colors mt-2"
     >
-      Get $FWOG tokens
+      Get $COM tokens
       <ExternalLink className="h-3 w-3 ml-1" />
     </a>
   );
@@ -37,7 +37,7 @@ export const TransactionStatus = ({ status, signature, message, retryCount, erro
           </div>
           <div className="text-center">
             <h3 className="font-semibold text-lg text-purple-600">Processing Payment</h3>
-            <p className="text-sm text-purple-600/80">Please confirm the 5 $FWOG payment in your wallet...</p>
+            <p className="text-sm text-purple-600/80">Please confirm the 5 $COM payment in your wallet...</p>
             <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
               <p className="text-sm text-purple-600 font-medium">
                 ⚠️ Keep your wallet open to approve the transaction
@@ -116,15 +116,15 @@ export const TransactionStatus = ({ status, signature, message, retryCount, erro
             <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600/80">
                 {error?.includes('insufficient funds') 
-                  ? 'Insufficient $FWOG tokens. You need 5 $FWOG tokens to generate an image.'
+                  ? 'Insufficient $COM tokens. You need 5 $COM tokens to generate an image.'
                   : error?.includes('TokenAccountNotFoundError') 
-                    ? 'No $FWOG tokens found. Please get some $FWOG tokens first.'
+                    ? 'No $COM tokens found. Please get some $COM tokens first.'
                     : error?.includes('User rejected') 
                       ? 'You declined the transaction. Try again when ready.'
                       : error || 'Failed to process transaction'}
               </p>
             </div>
-            {(error?.includes('$FWOG tokens') || error?.includes('TokenAccountNotFoundError')) && (
+            {(error?.includes('$COM tokens') || error?.includes('TokenAccountNotFoundError')) && (
               <div className="mt-4">
                 {getTokenButton}
               </div>
